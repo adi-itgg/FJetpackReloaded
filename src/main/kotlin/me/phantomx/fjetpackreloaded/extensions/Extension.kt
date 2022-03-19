@@ -229,7 +229,7 @@ fun Player.turnOff() = turnOff(null)
 /**
  * set item metadata String
  */
-fun ItemStack.set(key: String, value: String?) = metaData.setString(this, key, value)
+fun ItemStack.set(key: String, value: String?) = metaData.setString(this, key = key, value = value)
 
 /**
  * get item metadata String
