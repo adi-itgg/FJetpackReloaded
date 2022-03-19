@@ -9,15 +9,19 @@ import me.phantomx.fjetpackreloaded.events.EventListener
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
 import me.phantomx.fjetpackreloaded.modules.Module.id
+import me.phantomx.fjetpackreloaded.modules.Module.idJetpack
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
 import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
 import me.phantomx.fjetpackreloaded.modules.Module.load
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
-import me.phantomx.fjetpackreloaded.modules.Module.nmsServerVersion
+import me.phantomx.fjetpackreloaded.modules.Module.metaData
+import me.phantomx.fjetpackreloaded.modules.Module.nmsAPIVersion
 import me.phantomx.fjetpackreloaded.modules.Module.plugin
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
 import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
+import org.bukkit.Material
+import org.bukkit.inventory.ItemStack
 import kotlin.coroutines.CoroutineContext
 
 class FJetpackReloaded : FJRCommands() {
@@ -29,14 +33,23 @@ class FJetpackReloaded : FJRCommands() {
         plugin = this
         val console = server.consoleSender
         try {
-            nmsServerVersion = server.javaClass.getPackage().name.split(".").toTypedArray()[3]
             serverVersion = Bukkit.getVersion().lowercase().split("mc:")[1].split(".")[1].toIntSafe()
-            if (serverVersion == 0) throw IllegalThreadStateException("Unknown Server Version!")
-            "&6Detected Server: &a${Bukkit.getName()} v$serverVersion - $nmsServerVersion"
+            if (serverVersion == 0) throw IncompatibleClassChangeError("Unknown Server Version!")
+            nmsAPIVersion = server.javaClass.getPackage().name.split(".").toTypedArray()[3]
+            if (serverVersion > 17)
+                metaData.apply {
+                    if (getString(
+                            setString(ItemStack(Material.CHAINMAIL_CHESTPLATE), idJetpack, nmsAPIVersion),
+                            idJetpack
+                        ) != nmsAPIVersion
+                    )
+                        throw UnsupportedClassVersionError("Unsupported server api version!")
+                }
+            "&6Detected Server: &a${Bukkit.getName()} v$serverVersion - API $nmsAPIVersion"
         } catch (e: Exception) {
             e.printStackTrace()
-            "&cNot tested server version $serverVersion disabling plugin...".send(console, true)
-            "&cUnknown Server: &a${Bukkit.getName()} ${Bukkit.getVersion()}".send(console, true)
+            "&cNot tested server version ${server.version} disabling plugin...".send(console, true)
+            "&cUnknown Server: &a${Bukkit.getName()} ${Bukkit.getBukkitVersion()}".send(console, true)
             "&cThis plugin will not work because this server has unknown version!"
         }.send(console, true)
         if (serverVersion == 0) {

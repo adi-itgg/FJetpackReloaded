@@ -13,6 +13,7 @@ import me.phantomx.fjetpackreloaded.modules.Module.messages
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
 import me.phantomx.fjetpackreloaded.sealeds.OnEmptyFuel
+import org.bukkit.Bukkit
 import org.bukkit.Effect
 import org.bukkit.Material
 import org.bukkit.Particle
@@ -27,13 +28,11 @@ import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCreativeEvent
-import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.event.player.PlayerToggleSneakEvent
+import org.bukkit.event.inventory.InventoryType
+import org.bukkit.event.player.*
 import org.bukkit.inventory.ItemStack
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.sin
-
 
 @Suppress("unused")
 class EventListener : Listener, CoroutineScope {
@@ -215,7 +214,14 @@ class EventListener : Listener, CoroutineScope {
                                                                             )
                                                                         }
                                                                     } else {
-                                                                        world.playEffect(location.add(0.0, 0.8, 0.0), Effect.valueOf(jetpack.particleEffect.uppercase().trim()), 0)
+                                                                        world.playEffect(
+                                                                            location.add(0.0, 0.8, 0.0),
+                                                                            Effect.valueOf(
+                                                                                jetpack.particleEffect.uppercase()
+                                                                                    .trim()
+                                                                            ),
+                                                                            0
+                                                                        )
                                                                     }
                                                                 } catch (e: Exception) {
                                                                     e.printStackTrace()
@@ -236,7 +242,7 @@ class EventListener : Listener, CoroutineScope {
                                         return
                                     }
                                 } ?: run {
-                                    "jetpack Not set!".send(this)
+                                    "&cJetpack not set!".send(this)
                                 }
                             }
                         }
@@ -362,47 +368,59 @@ class EventListener : Listener, CoroutineScope {
     }
 
     @EventHandler
-    fun onInventoryClick(e: InventoryClickEvent) = (e.whoClicked as Player).apply player@ {
-        try {
-            if (e is InventoryCreativeEvent) return@player
-            e.cursor?.let { cursorItem ->
-                e.currentItem?.let { slotItem ->
-                    if (!slotItem.hasItemMeta() || slotItem.amount == 0) return@player
-                    if (e.click != ClickType.LEFT && e.click != ClickType.RIGHT && e.click == ClickType.WINDOW_BORDER_LEFT && e.click == ClickType.WINDOW_BORDER_RIGHT) return@player
-                    jetpacks[slotItem.get(idJetpack)]?.let { jetpack ->
-                        if (jetpack.fuel.startsWith("@"))
-                            customFuel[cursorItem.get(idCustomFuel)]?.apply {
-                                if (!hasPermission(permission)) {
-                                    messages.noPerms.send(this@player)
-                                    return@apply
+    fun onInventoryClick(e: InventoryClickEvent) {
+        (e.whoClicked as Player).apply player@ {
+            try {
+                if (e is InventoryCreativeEvent) return
+                e.cursor?.let { cursorItem ->
+                    e.currentItem?.let { slotItem ->
+                        if (!slotItem.hasItemMeta() || slotItem.type == Material.AIR || slotItem.amount == 0) return
+                        if (e.click != ClickType.LEFT && e.click != ClickType.RIGHT && e.click == ClickType.WINDOW_BORDER_LEFT && e.click == ClickType.WINDOW_BORDER_RIGHT)
+                            return
+                        jetpacks[slotItem.get(idJetpack)]?.let { jetpack ->
+
+                            if (e.slotType == InventoryType.SlotType.ARMOR)
+                                listPlayerUse[asPlayerFlying()]?.let {
+                                    if (jetpack.id == it.id)
+                                        turnOff(it)
+                                    else
+                                        return
                                 }
+
+                            if (jetpack.fuel.startsWith("@"))
+                                customFuel[cursorItem.get(idCustomFuel)]?.apply {
+                                    if (!hasPermission(permission)) {
+                                        messages.noPerms.send(this@player)
+                                        return
+                                    }
+                                } ?: return
+                            else if (cursorItem.type != Material.valueOf(jetpack.fuel.uppercase().trim()))
+                                return
+
+                            if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.refuel")) {
+                                messages.noPerms.send(this)
+                                return
                             }
-                        else if (cursorItem.type != Material.valueOf(jetpack.fuel.uppercase().trim()))
-                            return@player
 
-                        if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.refuel")) {
-                            messages.noPerms.send(this)
-                            return@player
-                        }
+                            e.isCancelled = true
 
-                        e.isCancelled = true
+                            val addFuelAmount = if (e.isLeftClick) cursorItem.amount else 1
 
-                        val addFuelAmount = if (e.isLeftClick) cursorItem.amount else 1
+                            val fuel = slotItem.get(fuelIdJetpack).toLongSafe()
 
-                        val fuel = slotItem.get(fuelIdJetpack).toLongSafe()
-
-                        e.currentItem = slotItem.update((fuel + addFuelAmount).toString(), jetpack)
-                        if (e.isLeftClick)
-                            setItemOnCursor(ItemStack(Material.AIR))
-                        else {
-                            cursorItem.amount = cursorItem.amount - 1
-                            setItemOnCursor(cursorItem)
+                            e.currentItem = slotItem.update((fuel + addFuelAmount).toString(), jetpack)
+                            if (e.isLeftClick)
+                                setItemOnCursor(ItemStack(Material.AIR))
+                            else {
+                                cursorItem.amount = cursorItem.amount - 1
+                                setItemOnCursor(cursorItem)
+                            }
                         }
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 

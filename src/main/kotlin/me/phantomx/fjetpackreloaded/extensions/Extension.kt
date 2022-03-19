@@ -16,16 +16,13 @@ import me.phantomx.fjetpackreloaded.modules.Module.jetpackFuelValuePlaceholder
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.messages
 import me.phantomx.fjetpackreloaded.modules.Module.metaData
+import me.phantomx.fjetpackreloaded.modules.Module.modifiedConfig
 import me.phantomx.fjetpackreloaded.modules.Module.permission
 import me.phantomx.fjetpackreloaded.modules.Module.plugin
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
 import me.phantomx.fjetpackreloaded.modules.Module.stringEmpty
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
-import net.md_5.bungee.api.ChatColor
-import org.bukkit.Bukkit
-import org.bukkit.Color
-import org.bukkit.Material
-import org.bukkit.NamespacedKey
+import org.bukkit.*
 import org.bukkit.command.CommandSender
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.LivingEntity
@@ -138,7 +135,7 @@ fun String.translateHex(): String = try {
  */
 @Suppress("BlockingMethodInNonBlockingContext")
 suspend fun CommandSender.checkUpdatePlugin() {
-    if (!hasPermission("${permission}update")) return
+    if (!modifiedConfig.updateNotification || !hasPermission("${permission}update")) return
     withContext(IO) {
         try {
             URL("https://api.spigotmc.org/legacy/update.php?resource=78318").openStream()
@@ -229,12 +226,12 @@ fun Player.turnOff() = turnOff(null)
 /**
  * set item metadata String
  */
-fun ItemStack.set(key: String, value: String?) = metaData.setString(this, key = key, value = value)
+fun ItemStack.set(key: String, value: String?) = metaData.setStringSafe(this, key = key, value = value)
 
 /**
  * get item metadata String
  */
-fun ItemStack.get(key: String): String = metaData.getString(this, key = key)
+fun ItemStack.get(key: String): String = metaData.getStringSafe(this, key = key)
 
 /**
  * Check if the item stack is not armor

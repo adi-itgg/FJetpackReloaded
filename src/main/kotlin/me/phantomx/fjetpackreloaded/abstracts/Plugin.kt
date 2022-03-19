@@ -3,7 +3,6 @@ package me.phantomx.fjetpackreloaded.abstracts
 import com.google.gson.Gson
 import kotlinx.coroutines.Job
 import me.phantomx.fjetpackreloaded.FJetpackReloaded
-import me.phantomx.fjetpackreloaded.commands.FJRCommands
 import me.phantomx.fjetpackreloaded.data.*
 import me.phantomx.fjetpackreloaded.nms.ItemMetaData
 import java.util.*
@@ -18,7 +17,7 @@ abstract class Plugin {
     val stringEmpty = StringBuilder().toString()
     val gson = Gson()
 
-    var nmsServerVersion = "UNKNOWN"
+    var nmsAPIVersion = "UNKNOWN"
     var serverVersion = 0
     var defaultPrefix = "&e[&bFJetpack&6Reloaded&e]"
 

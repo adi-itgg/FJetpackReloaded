@@ -25,6 +25,19 @@ repositories {
     maven { url 'https://hub.spigotmc.org/nexus/content/repositories/public/' }
 }
 
+def urlFile = { url, name ->
+    File file = new File("$buildDir/download/${name}.jar")
+    file.parentFile.mkdirs()
+    if (!file.exists()) {
+        new URL(url).withInputStream { downloadStream ->
+            file.withOutputStream { fileOut ->
+                fileOut << downloadStream
+            }
+        }
+    }
+    files(file.absolutePath)
+} as Object
+
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0"
@@ -34,9 +47,13 @@ dependencies {
     implementation 'org.bstats:bstats-bukkit:3.0.0'
 
     // Pick only one of these and read the comment in the repositories block.
-    compileOnly 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
+    //compileOnly 'org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
     //compileOnly 'org.spigotmc:spigot:1.18.2-R0.1-SNAPSHOT' // The full Spigot server with no shadowing. Requires mavenLocal.
-    compileOnly spigot('1.18.1')
+    //compileOnly spigot('1.18.1')
+
+    compileOnly urlFile('https://hub.spigotmc.org/nexus/content/repositories/snapshots/org/spigotmc/spigot-api/1.18.2-R0.1-SNAPSHOT/spigot-api-1.18.2-R0.1-20220318.230433-21.jar', 'spigot-api-1.18.2-R0.1-SNAPSHOT')
+
+    implementation files('G:/Server/Minecraft/1.18/bundler/versions/spigot-1.18-R0.1-SNAPSHOT.jar')
 
     testImplementation 'junit:junit:4.13'
     testImplementation 'com.github.seeseemelk:MockBukkit-v1.16:1.0.0'
