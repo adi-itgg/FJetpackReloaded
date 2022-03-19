@@ -1,0 +1,82 @@
+[
+  {
+    "id": "VIP",
+    "displayName": "&8&l[&bFJetpack&6&lReloaded&8&l]",
+    "lore": [
+      "&3&m&l----===[&r &8 &b&lINFO &8 &3&m&l]===----",
+      "&9Rank: &6&lVIP",
+      "",
+      "&3&m&l----===[&b &lUSAGE &3&m&l]===----",
+      "&9Sneak to toggle on/off",
+      "&9Double jump to fly",
+      "",
+      "&7Fuel: &a{#fuel_value} &b{#fuel}"
+    ],
+    "permission": "fjetpackreloaded.vip",
+    "canBypassFuel": false,
+    "canBypassSprintFuel": false,
+    "jetpackItem": "CHAINMAIL_CHESTPLATE",
+    "unbreakable": true,
+    "onEmptyFuel": "None",
+    "onDeath": "None",
+    "fuel": "@CVIP",
+    "fuelCost": 1,
+    "fuelCostFlySprint": 0,
+    "burnRate": 5,
+    "speed": "1.0",
+    "particleEffect": "CLOUD",
+    "particleAmount": 0,
+    "particleDelay": 100,
+    "flags": [
+      "HIDE_ATTRIBUTES",
+      "HIDE_ENCHANTS"
+    ],
+    "enchantments": [
+      "unbreaking:3",
+      "DURABILITY:3"
+    ],
+    "worldBlackList": [
+      "world1"
+    ]
+  },
+  {
+    "id": "Member",
+    "displayName": "&8&l[&bFJetpack&6&lReloaded&8&l]",
+    "lore": [
+      "&3&m&l----===[&r &8 &b&lINFO &8 &3&m&l]===----",
+      "&9Rank: &b&lMember",
+      "",
+      "&3&m&l----===[&b &lUSAGE &3&m&l]===----",
+      "&9Sneak to toggle on/off",
+      "&9Double jump to fly",
+      "",
+      "&7Fuel: &a{#fuel_value} &b{#fuel}"
+    ],
+    "permission": "fjetpackreloaded.#id",
+    "canBypassFuel": false,
+    "canBypassSprintFuel": false,
+    "jetpackItem": "LEATHER_CHESTPLATE:255.0.0",
+    "unbreakable": false,
+    "onEmptyFuel": "None",
+    "onDeath": "Drop",
+    "fuel": "Coal",
+    "fuelCost": 1,
+    "fuelCostFlySprint": 1,
+    "burnRate": 3,
+    "speed": "1.0",
+    "particleEffect": "none",
+    "particleAmount": 0,
+    "particleDelay": 100,
+    "flags": [
+      "HIDE_ATTRIBUTES",
+      "HIDE_ENCHANTS"
+    ],
+    "enchantments": [
+      "unbreaking:3",
+      "DURABILITY:3"
+    ],
+    "worldBlackList": [
+      "world1"
+    ]
+  }
+]

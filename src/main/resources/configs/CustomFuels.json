@@ -1,0 +1,16 @@
+[
+  {
+    "id": "CVIP",
+    "customDisplay": "&6&lPertamax",
+    "displayName": "&b&lC&6&lVIP",
+    "lore": [
+      "",
+      "&eFuel for &l&6VIP!",
+      "",
+      "&6&lPremium &efuel"
+    ],
+    "item": "GOLD_INGOT",
+    "permission": "fjetpackreloaded.fuel.cvip",
+    "glowing": true
+  }
+]

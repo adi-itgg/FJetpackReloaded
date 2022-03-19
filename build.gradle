@@ -1,0 +1,116 @@
+plugins {
+    id 'idea'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
+    id 'org.jetbrains.kotlin.kapt' version '1.5.31'
+    id 'java'
+    id 'kr.entree.spigradle' version '2.3.4'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+group 'me.phantomx.fjetpackreloaded'
+version '1.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+
+        content {
+            includeGroup 'org.bukkit'
+            includeGroup 'org.spigotmc'
+        }
+    }
+    maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url = 'https://oss.sonatype.org/content/repositories/central' }
+    maven { url 'https://hub.spigotmc.org/nexus/content/repositories/public/' }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0"
+
+    implementation 'com.google.code.gson:gson:2.9.0'
+    implementation 'org.json:json:20211205'
+    implementation 'org.bstats:bstats-bukkit:3.0.0'
+
+    // Pick only one of these and read the comment in the repositories block.
+    compileOnly 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
+    //compileOnly 'org.spigotmc:spigot:1.18.2-R0.1-SNAPSHOT' // The full Spigot server with no shadowing. Requires mavenLocal.
+    compileOnly spigot('1.18.1')
+
+    testImplementation 'junit:junit:4.13'
+    testImplementation 'com.github.seeseemelk:MockBukkit-v1.16:1.0.0'
+}
+
+test {
+    useJUnit()
+
+    maxHeapSize = '1G'
+}
+
+shadowJar {
+    relocate("org.bstats", "me.phantomx.fjetpackreloaded")
+}
+
+spigot {
+    main = 'me.phantomx.fjetpackreloaded.FJetpackReloaded'
+    description = 'Simple, Lightweight and Customizable a Jetpack Plugin'
+    authors = ['PhantomX']
+    depends = []
+    apiVersion = '1.13'
+    load = POSTWORLD //STARTUP
+    commands {
+        fjetpackreloaded {
+            aliases = ['fjr']
+            description = 'FJetpackReloaded Main command.'
+            usage = '/<command> [help]'
+        }
+    }
+    permissions {
+        'fjetpackreloaded.help' {
+            description = 'Allows FJetpackReloaded help command'
+            defaults = 'true'
+        }
+        'fjetpackreloaded.*' {
+            description = 'Allows to use of all FJetpackReloaded commands.'
+            defaults = 'op'
+            children = [
+                    'fjetpackreloaded.reload': true,
+                    'fjetpackreloaded.set': true,
+                    'fjetpackreloaded.get': true,
+                    'fjetpackreloaded.give': true,
+                    'fjetpackreloaded.getfuel': true,
+                    'fjetpackreloaded.givefuel': true,
+                    'fjetpackreloaded.checkupdate': true
+            ]
+        }
+        'fjetpackreloaded.reload' {
+            description = 'Reload all configs plugin'
+            defaults = 'false'
+        }
+        'fjetpackreloaded.set' {
+            description = 'Set jetpack item in hand'
+            defaults = 'false'
+        }
+        'fjetpackreloaded.get' {
+            description = 'Get/Give the jetpack item'
+            defaults = 'false'
+        }
+        'fjetpackreloaded.give' {
+            description = 'Get/Give the jetpack item'
+            defaults = 'false'
+        }
+        'fjetpackreloaded.getfuel' {
+            description = 'Get/Give the custom fuel item'
+            defaults = 'false'
+        }
+        'fjetpackreloaded.givefuel' {
+            description = 'Get/Give the custom fuel item'
+            defaults = 'false'
+        }
+        'fjetpackreloaded.checkupdate' {
+            description = 'Check update this plugin'
+            defaults = 'false'
+        }
+    }
+}

@@ -1,0 +1,5 @@
+# version
+version: 1
+
+# Enable/Disable Update Notification
+updateNotification: true
