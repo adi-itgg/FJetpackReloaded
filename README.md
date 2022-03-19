@@ -11,6 +11,7 @@ Minecraft Jetpack Plugin - Lightweight - Fuel System - Multi Jetpack with custom
 | /fjr Set [Jetpack] {Fuel} | Set Jetpack in hand with fuel |
 | /fjr SetFuel <Amount> | Set Amount Fuel Jetpack in hand |
 | /fjr Reload | Reload all config |
+| /fjr CheckUpdate | Check update this plugin |
 
 # Permissions
 | Permission | Description |
