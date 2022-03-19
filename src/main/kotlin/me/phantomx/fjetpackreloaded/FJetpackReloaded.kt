@@ -1,9 +1,6 @@
 package me.phantomx.fjetpackreloaded
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import me.phantomx.fjetpackreloaded.commands.FJRCommands
 import me.phantomx.fjetpackreloaded.events.EventListener
 import me.phantomx.fjetpackreloaded.extensions.*
@@ -84,6 +81,10 @@ class FJetpackReloaded : FJRCommands() {
         }
         jetpacks.clear()
         customFuel.clear()
+        if (mainContext.isActive)
+            runBlocking {
+                (mainContext as Job).cancelAndJoin()
+            }
     }
 
 }

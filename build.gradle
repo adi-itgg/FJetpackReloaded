@@ -47,13 +47,13 @@ dependencies {
     implementation 'org.bstats:bstats-bukkit:3.0.0'
 
     // Pick only one of these and read the comment in the repositories block.
-    //compileOnly 'org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
+    compileOnly 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
     //compileOnly 'org.spigotmc:spigot:1.18.2-R0.1-SNAPSHOT' // The full Spigot server with no shadowing. Requires mavenLocal.
     //compileOnly spigot('1.18.1')
 
-    compileOnly urlFile('https://hub.spigotmc.org/nexus/content/repositories/snapshots/org/spigotmc/spigot-api/1.18.2-R0.1-SNAPSHOT/spigot-api-1.18.2-R0.1-20220318.230433-21.jar', 'spigot-api-1.18.2-R0.1-SNAPSHOT')
+    //compileOnly urlFile('https://hub.spigotmc.org/nexus/content/repositories/snapshots/org/spigotmc/spigot-api/1.18.2-R0.1-SNAPSHOT/spigot-api-1.18.2-R0.1-20220318.230433-21.jar', 'spigot-api-1.18.2-R0.1-SNAPSHOT')
 
-    implementation files('G:/Server/Minecraft/1.18/bundler/versions/spigot-1.18-R0.1-SNAPSHOT.jar')
+    //compileOnly files('G:/Server/Minecraft/1.18/bundler/versions/spigot-1.18-R0.1-SNAPSHOT.jar')
 
     testImplementation 'junit:junit:4.13'
     testImplementation 'com.github.seeseemelk:MockBukkit-v1.16:1.0.0'
