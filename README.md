@@ -16,8 +16,8 @@ Minecraft Jetpack Plugin - Lightweight - Fuel System - Multi Jetpack with custom
 | Permission | Description |
 |   :---:    |     :-:     |
 | fjetpackreloaded.help | Allow player use command /fjr help |
-| fjetpackreloaded.get|give | Allow player to use command /fjr get|give <name> |
-| fjetpackreloaded.getfuel|givefuel | Allow player to use command /fjr getfuel|givefuel <name> |
+| fjetpackreloaded.get or give | Allow player to use command /fjr get/give <name> |
+| fjetpackreloaded.getfuel or givefuel | Allow player to use command /fjr getfuel/givefuel <name> |
 | fjetpackreloaded.set | Allow player to use commnd /fjr set <jetpack> |
 | fjetpackreloaded.setfuel | Allow player to use commnd /fjr setfuel <amount> |
 | fjetpackreloaded.reload | Allow player to use command /fjr reload |
