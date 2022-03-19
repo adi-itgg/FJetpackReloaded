@@ -77,10 +77,13 @@ fun String.send(target: CommandSender, noPrefix: Boolean) {
         (when (noPrefix) {
             true -> stringEmpty
             false -> messages.prefix + " "
-        } + this).translateHex().translateCodes()
+        } + this).translateAllCodes()
     )
 }
 
+/**
+ * Translate all color codes (Hex and &)
+ */
 fun String.translateAllCodes() = translateHex().translateCodes()
 
 /**
