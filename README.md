@@ -1,5 +1,5 @@
 # FJetpackReloaded
-Simple a Jetpack Plugin - using Coroutines
+Minecraft Jetpack Plugin - Lightweight - Fuel System - Multi Jetpack with customizable configuration - using Coroutines
 
 # Commands
 
