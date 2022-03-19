@@ -35,7 +35,7 @@ class FJetpackReloaded : FJRCommands() {
             "&6Detected Server: &a${Bukkit.getName()} v$serverVersion - $nmsServerVersion"
         } catch (e: Exception) {
             e.printStackTrace()
-            "&cNot tested server version disabling plugin...".send(console, true)
+            "&cNot tested server version $serverVersion disabling plugin...".send(console, true)
             "&cUnknown Server: &a${Bukkit.getName()} ${Bukkit.getVersion()}".send(console, true)
             "&cThis plugin will not work because this server has unknown version!"
         }.send(console, true)
