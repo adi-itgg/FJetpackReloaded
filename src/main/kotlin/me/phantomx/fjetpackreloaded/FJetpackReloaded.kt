@@ -1,7 +1,10 @@
 package me.phantomx.fjetpackreloaded
 
-import kotlinx.coroutines.*
-import me.phantomx.fjetpackreloaded.abstracts.Minecraft
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import me.phantomx.fjetpackreloaded.commands.FJRCommands
 import me.phantomx.fjetpackreloaded.events.EventListener
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
@@ -17,7 +20,7 @@ import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import kotlin.coroutines.CoroutineContext
 
-class FJetpackReloaded : Minecraft() {
+class FJetpackReloaded : FJRCommands() {
 
     override val coroutineContext: CoroutineContext
         get() = mainContext
@@ -37,13 +40,19 @@ class FJetpackReloaded : Minecraft() {
             "&cThis plugin will not work because this server has unknown version!"
         }.send(console, true)
         if (serverVersion == 0) {
-            disable()
+            isEnabled = false
             return
         }
 
         launch {
             if (load(sender = console))
                 "&a&lAll configs has been loaded".send(console)
+            else {
+                main {
+                    isEnabled = false
+                }
+                return@launch
+            }
             console.checkUpdatePlugin()
             main {
                 server.pluginManager.registerEvents(EventListener(), this@FJetpackReloaded)

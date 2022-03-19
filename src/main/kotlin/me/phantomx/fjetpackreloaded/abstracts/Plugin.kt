@@ -3,6 +3,7 @@ package me.phantomx.fjetpackreloaded.abstracts
 import com.google.gson.Gson
 import kotlinx.coroutines.Job
 import me.phantomx.fjetpackreloaded.FJetpackReloaded
+import me.phantomx.fjetpackreloaded.commands.FJRCommands
 import me.phantomx.fjetpackreloaded.data.*
 import me.phantomx.fjetpackreloaded.nms.ItemMetaData
 import java.util.*

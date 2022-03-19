@@ -3,7 +3,7 @@ package me.phantomx.fjetpackreloaded.modules
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
-import me.phantomx.fjetpackreloaded.abstracts.Minecraft
+import me.phantomx.fjetpackreloaded.FJetpackReloaded
 import me.phantomx.fjetpackreloaded.abstracts.Plugin
 import me.phantomx.fjetpackreloaded.data.Config
 import me.phantomx.fjetpackreloaded.data.CustomFuel
@@ -29,7 +29,7 @@ object Module : Plugin() {
     /**
      * Load all configs
      */
-    suspend fun Minecraft.load(sender: CommandSender): Boolean =
+    suspend fun FJetpackReloaded.load(sender: CommandSender): Boolean =
         try {
             reloadConfig()
             modifiedConfig = Config(config["version", 1].toString().toIntSafe(1), config["updateNotification", true].toString().toBoolean())
@@ -73,8 +73,7 @@ object Module : Plugin() {
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             e.printStackTrace()
-            "Failed To Load Configs!".send(sender)
-            disable()
+            "&cLoad configs failed!".send(sender)
             false
         }
 
