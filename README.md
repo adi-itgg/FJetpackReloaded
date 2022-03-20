@@ -1,5 +1,5 @@
 # FJetpackReloaded
-Simple a Jetpack Plugin - using Coroutines
+Minecraft Jetpack Plugin - Lightweight - Fuel System - Multi Jetpack with customizable configuration - using Coroutines
 
 # Commands
 
@@ -11,15 +11,23 @@ Simple a Jetpack Plugin - using Coroutines
 | /fjr Set [Jetpack] {Fuel} | Set Jetpack in hand with fuel |
 | /fjr SetFuel <Amount> | Set Amount Fuel Jetpack in hand |
 | /fjr Reload | Reload all config |
+| /fjr CheckUpdate | Check update this plugin |
 
 # Permissions
 | Permission | Description |
 |   :---:    |     :-:     |
 | fjetpackreloaded.help | Allow player use command /fjr help |
-| fjetpackreloaded.get|give | Allow player to use command /fjr get|give <name> |
-| fjetpackreloaded.getfuel|givefuel | Allow player to use command /fjr getfuel|givefuel <name> |
+| fjetpackreloaded.get or give | Allow player to use command /fjr get/give <name> |
+| fjetpackreloaded.getfuel or givefuel | Allow player to use command /fjr getfuel/givefuel <name> |
 | fjetpackreloaded.set | Allow player to use commnd /fjr set <jetpack> |
 | fjetpackreloaded.setfuel | Allow player to use commnd /fjr setfuel <amount> |
 | fjetpackreloaded.reload | Allow player to use command /fjr reload |
 | fjetpackreloaded.{jetpack}.use | Allow player to use Jetpack |
 | fjetpackreloaded.{jetpack}.refuel | Allow player to refuel Jetpack |
+
+ 
+# bStats
+https://bstats.org/plugin/bukkit/FJetpackReloaded/14647
+  
+# Spigot
+https://spigotmc.org/resources/fjetpack.78318/
