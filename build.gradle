@@ -8,7 +8,7 @@ plugins {
 }
 
 group 'me.phantomx.fjetpackreloaded'
-version '1.0'
+version '1.1'
 
 repositories {
     mavenCentral()
@@ -71,7 +71,7 @@ shadowJar {
 
 spigot {
     main = 'me.phantomx.fjetpackreloaded.FJetpackReloaded'
-    description = 'Simple, Lightweight and Customizable a Jetpack Plugin'
+    description = 'Lightweight, Fuel System and Customizable a Jetpack Plugin'
     authors = ['PhantomX']
     depends = []
     apiVersion = '1.13'
@@ -80,7 +80,6 @@ spigot {
         fjetpackreloaded {
             aliases = ['fjr']
             description = 'FJetpackReloaded Main command.'
-            usage = '/<command> [help]'
         }
     }
     permissions {

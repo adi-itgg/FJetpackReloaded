@@ -134,11 +134,11 @@ fun String.translateHex(): String = try {
  * check update plugin, send information to target
  */
 @Suppress("BlockingMethodInNonBlockingContext")
-suspend fun CommandSender.checkUpdatePlugin() {
-    if (!modifiedConfig.updateNotification || !hasPermission("${permission}update")) return
+suspend fun CommandSender.checkUpdatePlugin(loginEvent: Boolean) {
+    if ((!modifiedConfig.updateNotification && loginEvent) || !hasPermission("${permission}update")) return
     withContext(IO) {
         try {
-            URL("https://api.spigotmc.org/legacy/update.php?resource=78318").openStream()
+            URL("https://api.spigotmc.org/legacy/update.php?resource=100816").openStream()
                 .use { inputStream ->
                     Scanner(inputStream).use { scanner ->
                         if (scanner.hasNext()) {
@@ -148,11 +148,11 @@ suspend fun CommandSender.checkUpdatePlugin() {
 
                             yield()
                             when {
-                                currentVersion == spigotVersion -> "${Module.defaultPrefix} &aThere is not a new update available. You are using the latest version"
-                                currentVersion >= spigotVersion -> "${Module.defaultPrefix} &aThere is not a new update available. You are using the latest dev build version"
+                                currentVersion == spigotVersion -> "&aThere is not a new update available. You are using the latest version"
+                                currentVersion >= spigotVersion -> "&aThere is not a new update available. You are using the latest dev build version"
                                 else -> {
                                     "&bThere is a new update available! v$sVersion".sendDefault(this@checkUpdatePlugin)
-                                    "&ehttps://www.spigotmc.org/resources/fjetpack.78318/"
+                                    "&ehttps://www.spigotmc.org/resources/fjetpackreloaded.100816/"
                                 }
                             }.sendDefault(this@checkUpdatePlugin)
                         }
@@ -160,7 +160,7 @@ suspend fun CommandSender.checkUpdatePlugin() {
                 }
         } catch (e: IOException) {
             yield()
-            server.logger.info("Cannot look for updates: ${e.message}")
+            server.logger.warning("Can't look for updates: ${e.message}")
         }
     }
 }

@@ -63,9 +63,9 @@ class FJetpackReloaded : FJRCommands() {
                 }
                 return@launch
             }
-            console.checkUpdatePlugin()
+            console.checkUpdatePlugin(loginEvent = false)
             main {
-                server.pluginManager.registerEvents(EventListener(), this@FJetpackReloaded)
+                server.pluginManager.registerEvents(EventListener(), plugin)
             }
         }
         Metrics(this, id)

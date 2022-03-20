@@ -179,7 +179,7 @@ class EventListener : Listener, CoroutineScope {
                                             turnOff(jetpack)
                                         }
 
-                                        if (jetpack.particleEffect != "none")
+                                        if (jetpack.particleEffect.lowercase() != "none")
                                             try {
                                                 if (serverVersion > 8)
                                                     Particle.valueOf(jetpack.particleEffect.uppercase().trim())
@@ -234,7 +234,7 @@ class EventListener : Listener, CoroutineScope {
                                                     }
                                                 }
                                             } catch (e: Exception) {
-                                                "&cInvalid Perticle Effect!".send(this@player)
+                                                "&cInvalid Particle Effect!".send(this@player)
                                             }
 
                                         listPlayerUse[this] = jetpack
@@ -258,7 +258,7 @@ class EventListener : Listener, CoroutineScope {
     @EventHandler(priority = EventPriority.LOW)
     fun onPlayerJoin(e: PlayerJoinEvent) {
         launch {
-            e.player.checkUpdatePlugin()
+            e.player.checkUpdatePlugin(loginEvent = true)
         }
     }
 

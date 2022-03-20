@@ -42,7 +42,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         label: String,
         args: Array<out String>
     ): Boolean = sender.run {
-        if (label != idJetpack && label.lowercase() != "fjr") return false
+        if (!label.equals(idJetpack, ignoreCase = true) && label.lowercase() != "fjr") return false
 
         var notContainsCmd = true
         if (args.isNotEmpty())
@@ -80,7 +80,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         if (args[0].equals(commandList[7], ignoreCase = true)) {
             if (hasPermission(permission + commandList[7]))
                 launch {
-                    checkUpdatePlugin()
+                    checkUpdatePlugin(loginEvent = false)
                 }
             else
                 messages.noPerms.send(this)
@@ -234,7 +234,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         alias: String,
         args: Array<out String>
     ): MutableList<String>? = sender.run {
-        if (!isOp || !hasPermission("${permission}admin") || !hasPermission(permission + args[0]))
+        if (!hasPermission("${permission}admin") && !hasPermission(permission + args[0]))
             return null
 
         var completions: MutableList<String> = ArrayList()
