@@ -13,7 +13,6 @@ import me.phantomx.fjetpackreloaded.modules.Module.messages
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
 import me.phantomx.fjetpackreloaded.sealeds.OnEmptyFuel
-import org.bukkit.Bukkit
 import org.bukkit.Effect
 import org.bukkit.Material
 import org.bukkit.Particle
@@ -29,7 +28,9 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCreativeEvent
 import org.bukkit.event.inventory.InventoryType
-import org.bukkit.event.player.*
+import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.player.PlayerToggleSneakEvent
 import org.bukkit.inventory.ItemStack
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.sin
@@ -42,12 +43,12 @@ class EventListener : Listener, CoroutineScope {
     @EventHandler(priority = EventPriority.LOWEST)
     fun onCrouch(e: PlayerToggleSneakEvent) {
         try {
-            e.player.apply player@{
+            e.player.apply player@ {
                 equipment?.let {
                     if (it.armorContents.isEmpty()) return
                     val armors = it.armorContents.iterator()
                     while (armors.hasNext()) {
-                        armors.next()?.let i@{ armor ->
+                        armors.next()?.let i@ { armor ->
                             if (armor.type == Material.AIR) return@i
                             armor.itemMeta?.let { meta ->
                                 if (isSneaking || !meta.hasLore() || !(this as LivingEntity).isOnGround) return@i
@@ -241,8 +242,6 @@ class EventListener : Listener, CoroutineScope {
                                         messages.turnOn.send(this@player)
                                         return
                                     }
-                                } ?: run {
-                                    "&cJetpack not set!".send(this)
                                 }
                             }
                         }
