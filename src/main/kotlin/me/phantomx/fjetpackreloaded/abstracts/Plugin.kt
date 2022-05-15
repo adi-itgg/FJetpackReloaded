@@ -1,6 +1,7 @@
 package me.phantomx.fjetpackreloaded.abstracts
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Job
 import me.phantomx.fjetpackreloaded.FJetpackReloaded
 import me.phantomx.fjetpackreloaded.data.*
@@ -15,7 +16,7 @@ abstract class Plugin {
     val mainContext: CoroutineContext = Job()
     lateinit var plugin: FJetpackReloaded
     val stringEmpty = StringBuilder().toString()
-    val gson = Gson()
+    val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
     var nmsAPIVersion = "UNKNOWN"
     var serverVersion = 0
@@ -38,6 +39,10 @@ abstract class Plugin {
 
     val jetpackFuelPlaceholder = "{#fuel}"
     val jetpackFuelValuePlaceholder = "{#fuel_value}"
+
+    val jetpacksYaml = "configs/Jetpacks.yml"
+    val customFuelsYaml = "configs/CustomFuels.yml"
+    val messagesYaml = "configs/Messages.yml"
 
 
 }

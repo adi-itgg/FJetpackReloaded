@@ -1,5 +1,8 @@
-# version
-version: 1
+# The configs version
+version: 2
 
 # Enable/Disable Update Notification
 updateNotification: true
+
+# Set all format configs to yaml
+configsYaml: true

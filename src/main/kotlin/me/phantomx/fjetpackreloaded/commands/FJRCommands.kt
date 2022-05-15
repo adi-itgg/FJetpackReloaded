@@ -41,7 +41,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         command: Command,
         label: String,
         args: Array<out String>
-    ): Boolean = sender.run {
+    ): Boolean = sender.safeRun {
         if (!label.equals(idJetpack, ignoreCase = true) && label.lowercase() != "fjr") return false
 
         var notContainsCmd = true
@@ -58,7 +58,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                 stream.use {
                     Scanner(it).use { s ->
                         while (s.hasNextLine())
-                            s.nextLine().replace("#{version}", description.version).send(this, true)
+                            s.nextLine().replace("#{version}", description.version).send(this)
                     }
                 }
             } else
@@ -133,7 +133,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                 messages.noPerms.send(this)
                 return true
             }
-            try {
+            withSafe {
                 if (args.size > 1)
                     Bukkit.getPlayerExact(args[1])?.let {
                         if (args.size > 2)
@@ -142,18 +142,16 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                                 return true
                             }
                     } ?: also {
-                        if (this !is Player) {
+                        if (it !is Player) {
                             "&cYou can't run this command from Console!".send(this)
                             return true
                         }
-                        jetpacks[args[1]]?.apply {
-                            giveJetpack(this@run, this, if (args.size == 3) args[2].toLongSafe() else 1)
+                        jetpacks[args[1]]?.withSafe {
+                            giveJetpack(it, this, if (args.size == 3) args[2].toLongSafe() else 0)
                             return true
                         }
                     }
 
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
             "&bUsage: &3/fjr get (Player) &b${jetpacks.keys}&3 <Fuel>".send(this)
             return true
@@ -200,7 +198,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                 messages.noPerms.send(this)
                 return true
             }
-            try {
+            withSafe {
                 if (args.size > 1)
                     Bukkit.getPlayerExact(args[1])?.let {
                         if (args.size > 2)
@@ -209,24 +207,21 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                                 return true
                             }
                     } ?: also {
-                        if (this !is Player) {
+                        if (it !is Player) {
                             "&cYou can't run this command from Console!".send(this)
                             return true
                         }
                         customFuel[args[1]]?.apply {
-                            giveCustomFuel(this@run, this, if (args.size == 3) args[2].toIntSafe(1) else 1)
+                            giveCustomFuel(it, this, if (args.size == 3) args[2].toIntSafe(1) else 1)
                             return true
                         }
                     }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
             "&8&l- &3/fjr GetFuel (Player) &b${customFuel.keys} &3<Amount>".send(this)
             return true
         }
-
-        return false
-    }
+        false
+    } ?: false
 
     override fun onTabComplete(
         sender: CommandSender,

@@ -4,11 +4,14 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import me.phantomx.fjetpackreloaded.modules.Module.dataPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
+import me.ryanhamshire.GriefPrevention.Claim
 import org.bukkit.entity.Player
 
 data class PlayerFlying(var player: Player) {
+
     var fuelJob: Job? = null
     var particleJob: Job? = null
+    var griefClaim: Claim? = null
 
     fun stop() {
         stop(null)

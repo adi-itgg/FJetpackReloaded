@@ -1,14 +1,15 @@
 plugins {
     id 'idea'
-    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.21'
     id 'org.jetbrains.kotlin.kapt' version '1.5.31'
     id 'java'
     id 'kr.entree.spigradle' version '2.3.4'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.4.20'
 }
 
 group 'me.phantomx.fjetpackreloaded'
-version '1.2'
+version '1.3'
 
 repositories {
     mavenCentral()
@@ -23,6 +24,7 @@ repositories {
     maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
     maven { url = 'https://oss.sonatype.org/content/repositories/central' }
     maven { url 'https://hub.spigotmc.org/nexus/content/repositories/public/' }
+    maven { url 'https://jitpack.io' }
 }
 
 def urlFile = { url, name ->
@@ -41,10 +43,16 @@ def urlFile = { url, name ->
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:1.6.21"
 
     implementation 'com.google.code.gson:gson:2.9.0'
     implementation 'org.json:json:20211205'
     implementation 'org.bstats:bstats-bukkit:3.0.0'
+
+    //implementation "com.charleskorn.kaml:kaml:0.43.0"
+    implementation "net.mamoe.yamlkt:yamlkt:0.11.0"
+
+    compileOnly 'com.github.TechFortress:GriefPrevention:16.18'
 
     // Pick only one of these and read the comment in the repositories block.
     compileOnly 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
@@ -74,6 +82,8 @@ spigot {
     description = 'Lightweight, Fuel System and Customizable a Jetpack Plugin'
     authors = ['PhantomX']
     depends = []
+    softDepends = ['GriefPrevention']
+    libraries = ['org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0']
     apiVersion = '1.13'
     load = POSTWORLD //STARTUP
     commands {

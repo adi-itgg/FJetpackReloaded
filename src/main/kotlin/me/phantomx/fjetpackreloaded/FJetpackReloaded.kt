@@ -21,6 +21,7 @@ import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import kotlin.coroutines.CoroutineContext
 
+
 class FJetpackReloaded : FJRCommands() {
 
     override val coroutineContext: CoroutineContext
@@ -64,8 +65,8 @@ class FJetpackReloaded : FJRCommands() {
                 return@launch
             }
             console.checkUpdatePlugin(loginEvent = false)
-            main {
-                server.pluginManager.registerEvents(EventListener(), plugin)
+            server.main {
+                pluginManager.registerEvents(EventListener(), plugin)
             }
         }
         Metrics(this, id)
@@ -74,10 +75,9 @@ class FJetpackReloaded : FJRCommands() {
     override fun onDisable() {
         if (mainContext.isActive) mainContext.cancel(CancellationException("Plugin is disabled"))
         val players = listPlayerUse.entries.iterator()
-        while (players.hasNext()) {
-            val player = players.next()
-            player.key.player.turnOff()
-            listPlayerUse.remove(player.key)
+        while (players.hasNext()) players.next().withSafe {
+            key.player.turnOff()
+            listPlayerUse.remove(key)
         }
         jetpacks.clear()
         customFuel.clear()

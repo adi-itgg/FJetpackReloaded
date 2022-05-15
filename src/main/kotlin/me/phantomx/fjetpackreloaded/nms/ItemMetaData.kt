@@ -1,6 +1,6 @@
 package me.phantomx.fjetpackreloaded.nms
 
-import kotlinx.coroutines.CancellationException
+import me.phantomx.fjetpackreloaded.extensions.safeRun
 import me.phantomx.fjetpackreloaded.modules.Module.nmsAPIVersion
 import me.phantomx.fjetpackreloaded.modules.Module.plugin
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
@@ -56,15 +56,9 @@ class ItemMetaData {
         }
     }
 
-    fun setStringSafe(itemStack: ItemStack, key: String, value: String?): ItemStack {
-        try {
-            return setString(itemStack, key, value)
-        } catch (ex: Exception) {
-            if (ex is CancellationException) throw ex
-            //ex.printStackTrace();
-        }
-        return itemStack
-    }
+    fun setStringSafe(itemStack: ItemStack, key: String, value: String?) = itemStack.safeRun {
+        setString(this, key, value)
+    } ?: itemStack
 
     @Throws(Exception::class)
     fun getString(itemStack: ItemStack, key: String): String {
@@ -90,40 +84,28 @@ class ItemMetaData {
         }
     }
 
-    fun getStringSafe(itemStack: ItemStack, key: String): String {
-        try {
-            return getString(itemStack, key)
-        } catch (ex: Exception) {
-            if (ex is CancellationException) throw ex
-            //ex.printStackTrace();
-        }
-        return stringEmpty
-    }
+    fun getStringSafe(itemStack: ItemStack, key: String) = itemStack.safeRun {
+        getString(this, key)
+    } ?: stringEmpty
 
-    fun isNotItemArmor(itemStack: ItemStack): Boolean {
-        try {
-            val craftItem = Class.forName("org.bukkit.craftbukkit.$nmsAPIVersion.inventory.CraftItemStack")
-            val method: Method = craftItem.getMethod("asNMSCopy", ItemStack::class.java)
-            val cIS: Any = method.invoke(craftItem, itemStack)
-            val itm = cIS.javaClass.getMethod(if (serverVersion > 17) "c" else "getItem").invoke(cIS)
-            val isNotArmor = itm.javaClass.name != if (serverVersion > 16) "net.minecraft.world.item.ItemArmor" else
-                "net.minecraft.server.$nmsAPIVersion.ItemArmor"
-            if (isNotArmor)
-                itemStack.type.apply {
-                    if (this == Material.LEATHER_HELMET ||
-                        this == Material.LEATHER_CHESTPLATE ||
-                        this == Material.LEATHER_LEGGINGS ||
-                        this == Material.LEATHER_BOOTS
-                    )
-                        return false
-                }
-            return isNotArmor
-        } catch (ex: Exception) {
-            if (ex is CancellationException) throw ex
-            //ex.printStackTrace();
-        }
-        return true
-    }
+    fun isNotItemArmor(itemStack: ItemStack) = itemStack.safeRun {
+        val craftItem = Class.forName("org.bukkit.craftbukkit.$nmsAPIVersion.inventory.CraftItemStack")
+        val method: Method = craftItem.getMethod("asNMSCopy", ItemStack::class.java)
+        val cIS: Any = method.invoke(craftItem, this)
+        val itm = cIS.javaClass.getMethod(if (serverVersion > 17) "c" else "getItem").invoke(cIS)
+        val isNotArmor = itm.javaClass.name != if (serverVersion > 16) "net.minecraft.world.item.ItemArmor" else
+            "net.minecraft.server.$nmsAPIVersion.ItemArmor"
+        if (isNotArmor)
+            type.apply {
+                if (this == Material.LEATHER_HELMET ||
+                    this == Material.LEATHER_CHESTPLATE ||
+                    this == Material.LEATHER_LEGGINGS ||
+                    this == Material.LEATHER_BOOTS
+                )
+                    return false
+            }
+        isNotArmor
+    } ?: true
 }
 
 

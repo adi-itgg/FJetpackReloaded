@@ -1,19 +1,42 @@
 package me.phantomx.fjetpackreloaded.data
 
-import me.phantomx.fjetpackreloaded.modules.Module.stringEmpty
+import kotlinx.serialization.Serializable
+import net.mamoe.yamlkt.Comment
 
-
+@Serializable
 data class Messages(
-    var prefix: String = stringEmpty,
-    var turnOn: String = stringEmpty,
-    var turnOff: String = stringEmpty,
-    var noPerms: String = stringEmpty,
-    var detached: String = stringEmpty,
-    var outOfFuel: String = stringEmpty,
-    var blockedWorlds: String = stringEmpty,
-    var noFuel: String = stringEmpty,
-    var onEmptyFuelDropped: String = stringEmpty,
-    var onEmptyFuelRemoved: String = stringEmpty,
-    var onDeathDropped: String = stringEmpty,
-    var onDeathRemoved: String = stringEmpty
+    @Comment("""
+        Leave Empty message will disable the message
+        
+        Message prefix
+        """)
+    var prefix: String = "&e&l[&bFJetpack&6Reloaded&e&l]&r",
+    @Comment("When jetpack turned on")
+    var turnOn: String = "&a&lON",
+    @Comment("When jetpack turned off")
+    var turnOff: String = "&4&lOFF",
+    @Comment("Player don't have premission")
+    var noPerms: String = "&cYou don't have permission!",
+    @Comment("Jetpack removed from equipment")
+    var detached: String = "&cYou take off your Jetpack, making you fall to the ground",
+    @Comment("Jetpack out of fuel")
+    var outOfFuel: String = "&cYou are out of fuel!",
+    @Comment("Player using jetpack in blocked worlds")
+    var blockedWorlds: String = "&cYou can't use Jetpack in this World!",
+    @Comment("Jetpack don't have enough fuel")
+    var noFuel: String = "&cYou don't have fuel to fly!",
+    @Comment("When the jetpack runs out of fuel, it will fall to the ground")
+    var onEmptyFuelDropped: String = "&cJetpack out of fuel has been dropped!",
+    @Comment("When the jetpack runs out of fuel, it will removed from player")
+    var onEmptyFuelRemoved: String = "&cJetpack out of fuel has been removed!",
+    @Comment("When player died, iit will fall to the ground")
+    var onDeathDropped: String = "&cYou died jetpack has been dropped!",
+    @Comment("When player died, it will removed from player")
+    var onDeathRemoved: String = "&cYou died jetpack has been removed!",
+    @Comment("Turn on jetpack, but outside claim!")
+    var griefPreventionOutsideClaim: String = "&cYou didn't inside claim!",
+    @Comment("Turn off jetpack if player outside claim while flying")
+    var griefPreventionTurnedOffOutsideClaim: String = "&cYou outside claim jetpack is turned off",
+    @Comment("Turn on jetpack, but outside player own claim")
+    var griefPreventionOutsideOwnClaim: String = "&cYou are not in your own claim!"
 )
