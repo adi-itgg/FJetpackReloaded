@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ master ]
 
-permissions:
-  contents: read
-
 jobs:
   build:
 
@@ -37,5 +34,7 @@ jobs:
       with:
         path: ~/.gradle/wrapper
         key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
     - name: Run Gradle
       run: ./gradlew shadowJar
