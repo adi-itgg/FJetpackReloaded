@@ -71,7 +71,7 @@ class EventListener : Listener, CoroutineScope {
                                     asPlayerFlying().let { pf ->
                                         GriefPrevention.instance.dataStore.getClaimAt(location, true, true, pf.griefClaim)?.let { claim ->
                                             if (jetpack.onlyAllowInsideOwnGriefPreventionClaim && !jetpack.onlyAllowInsideAllGriefPreventionClaim) {
-                                                if (claim.getOwnerID() != uniqueId && !isOp && !hasPermission("$permission.*")) {
+                                                if (claim.getOwnerID() != uniqueId && !isOp && !hasPermission("$permission*")) {
                                                     messages.griefPreventionOutsideOwnClaim.send(this)
                                                     return
                                                 }
