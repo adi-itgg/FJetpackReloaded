@@ -27,6 +27,7 @@ Minecraft Jetpack Plugin - Lightweight - Fuel System - Multi Jetpack with custom
 
  
 # bStats
+![bStats](https://bstats.org/signatures/bukkit/FJetpackReloaded.svg)
 https://bstats.org/plugin/bukkit/FJetpackReloaded/14647
   
 # Spigot
