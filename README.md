@@ -26,9 +26,7 @@ Minecraft Jetpack Plugin - Lightweight - Fuel System - Multi Jetpack with custom
 | fjetpackreloaded.{jetpack}.refuel | Allow player to refuel Jetpack |
 
  
-# bStats
+[# bStats](https://bstats.org/plugin/bukkit/FJetpackReloaded/14647)
 ![bStats](https://bstats.org/signatures/bukkit/FJetpackReloaded.svg)
-https://bstats.org/plugin/bukkit/FJetpackReloaded/14647
-  
-# Spigot
-https://spigotmc.org/resources/fjetpack.78318/
+
+[# Spigot](https://www.spigotmc.org/resources/fjetpackreloaded.100816/)
