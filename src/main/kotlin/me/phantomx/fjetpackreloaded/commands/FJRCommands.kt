@@ -23,7 +23,7 @@ import java.util.*
 
 abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
 
-    private val commandList: List<String> = mutableListOf(
+    private val commandList = listOf(
         "help", // 0
         "reload", // 1
         "set", // 2
@@ -42,6 +42,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         label: String,
         args: Array<out String>
     ): Boolean = sender.safeRun {
+        if (super.onCommand(sender, command, label, args)) return true
         if (!label.equals(idJetpack, ignoreCase = true) && label.lowercase() != "fjr") return false
 
         var notContainsCmd = true
@@ -58,7 +59,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                 stream.use {
                     Scanner(it).use { s ->
                         while (s.hasNextLine())
-                            s.nextLine().replace("#{version}", description.version).send(this)
+                            s.nextLine().replace("#{version}", description.version).send(this, true)
                     }
                 }
             } else
@@ -228,9 +229,9 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         command: Command,
         alias: String,
         args: Array<out String>
-    ): MutableList<String>? = sender.run {
-        if (!hasPermission("${permission}admin") && !hasPermission(permission + args[0]))
-            return null
+    ): MutableList<String> = sender.run {
+        if (!hasPermission("$permission*") && !hasPermission(permission + args[0]))
+            return mutableListOf()
 
         var completions: MutableList<String> = ArrayList()
         if (args.size == 1)

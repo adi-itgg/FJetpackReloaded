@@ -1,7 +1,13 @@
 package me.phantomx.fjetpackreloaded.events
 
+import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI
 import kotlinx.coroutines.*
 import me.phantomx.fjetpackreloaded.extensions.*
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.GriefPreventionName
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Permission
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorSkyblock2ConfigLoaded
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
 import me.phantomx.fjetpackreloaded.modules.Module.fuelIdJetpack
 import me.phantomx.fjetpackreloaded.modules.Module.idCustomFuel
@@ -10,6 +16,7 @@ import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
 import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.messages
+import me.phantomx.fjetpackreloaded.modules.Module.permission
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
 import me.phantomx.fjetpackreloaded.modules.Module.stringEmpty
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
@@ -43,7 +50,7 @@ class EventListener : Listener, CoroutineScope {
         get() = mainContext
 
     @EventHandler(priority = EventPriority.LOWEST)
-    fun onCrouchRun(e: PlayerToggleSneakEvent) = e.withSafe {
+    fun onCrouch(e: PlayerToggleSneakEvent) = e.withSafe {
         player.apply player@{
             equipment?.let {
                 if (it.armorContents.isEmpty()) return
@@ -59,12 +66,12 @@ class EventListener : Listener, CoroutineScope {
                                     return@i
                                 }
 
-                                if (server.pluginManager.isPluginEnabled("GriefPrevention") &&
+                                if (server.isPluginActive(GriefPreventionName) &&
                                     (jetpack.onlyAllowInsideOwnGriefPreventionClaim || jetpack.onlyAllowInsideAllGriefPreventionClaim)) {
                                     asPlayerFlying().let { pf ->
                                         GriefPrevention.instance.dataStore.getClaimAt(location, true, true, pf.griefClaim)?.let { claim ->
                                             if (jetpack.onlyAllowInsideOwnGriefPreventionClaim && !jetpack.onlyAllowInsideAllGriefPreventionClaim) {
-                                                if (claim.getOwnerID() != uniqueId && !isOp && !hasPermission("fjetpackreloaded.*")) {
+                                                if (claim.getOwnerID() != uniqueId && !isOp && !hasPermission("$permission.*")) {
                                                     messages.griefPreventionOutsideOwnClaim.send(this)
                                                     return
                                                 }
@@ -76,6 +83,30 @@ class EventListener : Listener, CoroutineScope {
                                         }
                                     }
                                 }
+
+                                if (server.isPluginActive(SuperiorSkyblock2Name) && !hasPermission("$SuperiorSkyblock2Permission*"))
+                                    asPlayerFlying().withSafe(false) {
+                                        SuperiorSkyblockAPI.getIslandAt(location)?.let island@{ island ->
+                                            ss2Island = island.uniqueId
+                                            superiorPlayersData[island.owner.uniqueId]?.playersState?.get(uniqueId)?.run {
+                                                if (!this) {
+                                                    ss2Island = null
+                                                    "&cYou didn't allowed to fly inside this island!".send(player)
+                                                    return
+                                                }
+                                            } ?: run {
+                                                if (island.owner.uniqueId == uniqueId)
+                                                    Unit
+                                            }
+                                        } ?: run {
+                                            if (!superiorSkyblock2ConfigLoaded.defaultIsland) {
+                                                ss2Island = null
+                                                "&cYou didn't allowed to fly inside this island!".send(player)
+                                                return
+                                            }
+                                        }
+                                    }
+
 
                                 if (allowFlight && listPlayerUse[asPlayerFlying()] != null) {
                                     turnOff(jetpack)
@@ -191,6 +222,21 @@ class EventListener : Listener, CoroutineScope {
                                                         return@launch
                                                     }
                                                 }
+                                                ss2Island?.withSafe {
+                                                    SuperiorSkyblockAPI.getIslandAt(player.location)?.let island@ {
+                                                        val fromIsland = SuperiorSkyblockAPI.getIslandByUUID(this) ?: return@island null
+                                                        if (it.uniqueId != fromIsland.uniqueId) {
+                                                            ss2Island = null
+                                                            null
+                                                        } else
+                                                            Unit
+                                                    } ?: run {
+                                                        stop = true
+                                                        "&cJetpack turned off, you outside the island".send(player)
+                                                        turnOff(noMessage = true)
+                                                        return@launch
+                                                    }
+                                                }
                                                 if (stop)
                                                     break
                                                 delay(jetpack.burnRate.toLong() * 1000L)
@@ -218,16 +264,15 @@ class EventListener : Listener, CoroutineScope {
                                                                             (location.yaw + 270.0f).toDouble()
                                                                         )
                                                                     )).toFloat()
-                                                                    main {
+                                                                    jetpack.main {
                                                                         spawnParticle(
                                                                             Particle.valueOf(
-                                                                                jetpack.particleEffect.uppercase()
-                                                                                    .trim()
+                                                                                particleEffect.uppercase().trim()
                                                                             ),
                                                                             location.x + newZ,
                                                                             location.y + 0.8,
                                                                             location.z + newZ,
-                                                                            jetpack.particleAmount,
+                                                                            particleAmount,
                                                                             0.0,
                                                                             -0.2,
                                                                             0.0

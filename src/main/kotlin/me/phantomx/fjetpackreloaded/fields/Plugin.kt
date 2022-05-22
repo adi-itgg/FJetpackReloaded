@@ -1,4 +1,4 @@
-package me.phantomx.fjetpackreloaded.abstracts
+package me.phantomx.fjetpackreloaded.fields
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import me.phantomx.fjetpackreloaded.FJetpackReloaded
 import me.phantomx.fjetpackreloaded.data.*
 import me.phantomx.fjetpackreloaded.nms.ItemMetaData
+import java.io.File
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
@@ -44,6 +45,7 @@ abstract class Plugin {
     val customFuelsYaml = "configs/CustomFuels.yml"
     val messagesYaml = "configs/Messages.yml"
 
+    lateinit var databaseDirectory: File
 
 }
 

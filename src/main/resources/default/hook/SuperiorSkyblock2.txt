@@ -1,0 +1,8 @@
+&8
+&7-------------- [ &3FJetpack&6Reloaded&7 ] --------------
+&bHook &3&lSuperiorSkyblock2&b Command List
+&8
+&8&l- &3/SS2FJR <Island/Player> [Allow|Deny] (Player) &r- &bAllow/Deny player fly
+&8
+&7-------------- [ &3FJetpack&6Reloaded&7 ] --------------
+&8

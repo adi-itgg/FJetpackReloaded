@@ -3,12 +3,18 @@ package me.phantomx.fjetpackreloaded.modules
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import me.phantomx.fjetpackreloaded.FJetpackReloaded
-import me.phantomx.fjetpackreloaded.abstracts.Plugin
 import me.phantomx.fjetpackreloaded.data.Config
 import me.phantomx.fjetpackreloaded.data.CustomFuel
 import me.phantomx.fjetpackreloaded.data.Jetpack
 import me.phantomx.fjetpackreloaded.data.Messages
+import me.phantomx.fjetpackreloaded.data.hook.SuperiorSkyblock2Config
+import me.phantomx.fjetpackreloaded.data.hook.SuperiorSkyblock2Player
 import me.phantomx.fjetpackreloaded.extensions.*
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2ConfigFile
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorSkyblock2ConfigLoaded
+import me.phantomx.fjetpackreloaded.fields.Plugin
 import me.phantomx.fjetpackreloaded.nms.ItemMetaData
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
 import me.phantomx.fjetpackreloaded.sealeds.OnEmptyFuel
@@ -33,55 +39,95 @@ object Module : Plugin() {
     /**
      * Load all configs
      */
-    suspend fun FJetpackReloaded.load(sender: CommandSender) = sender.safeRun(false) {
-        reloadConfig()
-        modifiedConfig = Config(
-            config["version", 1].toString().toIntSafe(1),
-            config["updateNotification", true].toString().toBoolean(),
-            config["configsYaml", true].toString().toBoolean()
-        )
-        if (configVersion == 0)
-            getResource(config())?.use {
-                StringBuilder().apply {
-                    Scanner(it).use {
-                        while (it.hasNext())
-                            append(it.nextLine())
-                        configVersion = toString().toIntSafe(0)
+    suspend fun FJetpackReloaded.load(sender: CommandSender): Boolean {
+        databaseDirectory = File(plugin.dataFolder, "database")
+
+        val r = sender.safeRun(false) {
+            reloadConfig()
+            modifiedConfig = Config(
+                config["version", 1].toString().toIntSafe(1),
+                config["updateNotification", true].toString().toBoolean(),
+                config["configsYaml", true].toString().toBoolean()
+            )
+            if (configVersion == 0)
+                getResource(config())?.use {
+                    StringBuilder().apply {
+                        Scanner(it).use {
+                            while (it.hasNext())
+                                append(it.nextLine())
+                            configVersion = toString().toIntSafe(0)
+                        }
                     }
+                }
+
+            File(dataFolder, config()).apply {
+                if (!exists())
+                    saveAllDefaultConfig()
+                else if (modifiedConfig.version < configVersion) {
+                    sender.withSafe {
+                        val m = "WARNING!: %s has been updated!"
+                        "&eWARNING!: Config doesn't support!".send(this)
+                        File(dataFolder, "configs-v${modifiedConfig.version}-backup").let { backup ->
+                            if (backup.mkdirs() && exists() && renameTo(File(backup, config())))
+                                String.format(m, config()).send(this)
+                            val msg = File(dataFolder, messages())
+                            if (msg.exists() && msg.renameTo(File(backup, messages())))
+                                String.format(m, messages()).send(this)
+                            val jps = File(dataFolder, jetpacks())
+                            if (jps.exists() && jps.renameTo(File(backup, jetpacks())))
+                                String.format(m, jetpacks()).send(this)
+                        }
+                    }
+                    saveAllDefaultConfig()
                 }
             }
 
-        File(dataFolder, config()).apply {
-            if (!exists())
-                saveAllDefaultConfig()
-            else if (modifiedConfig.version < configVersion) {
-                sender.withSafe {
-                    val m = "WARNING!: %s has been updated!"
-                    "&eWARNING!: Config doesn't support!".send(this)
-                    File(dataFolder, "configs-v${modifiedConfig.version}-backup").let { backup ->
-                        if (backup.mkdirs() && exists() && renameTo(File(backup, config())))
-                            String.format(m, config()).send(this)
-                        val msg = File(dataFolder, messages())
-                        if (msg.exists() && msg.renameTo(File(backup, messages())))
-                            String.format(m, messages()).send(this)
-                        val jps = File(dataFolder, jetpacks())
-                        if (jps.exists() && jps.renameTo(File(backup, jetpacks())))
-                            String.format(m, jetpacks()).send(this)
-                    }
-                }
-                saveAllDefaultConfig()
-            }
+            loadMessages(this)
+
+            loadJetpacks(this)
+
+            loadCustomFuels(this)
+            true
+        } ?: sender.run {
+            "&cLoad configs failed!".send(this)
+            false
         }
+        if (server.isPluginActive(SuperiorSkyblock2Name))
+            getDatabase(SuperiorSkyblock2Name).let {
+                sender.safeRun(false) {
+                    var ss2Config = SuperiorSkyblock2ConfigFile
+                    if (!modifiedConfig.configsYaml) ss2Config = ss2Config.replace(".yml", ".json")
+                    File(dataFolder, ss2Config).apply {
+                        if (!exists() || length() < 1) {
+                            withSafe {
+                                parentFile.mkdirs()
+                                parentFile.mkdir()
+                            }
+                            writeText(
+                                if (modifiedConfig.configsYaml)
+                                    Yaml.encodeToString(SuperiorSkyblock2Config.serializer(), SuperiorSkyblock2Config())
+                                else
+                                    gson.toJson(SuperiorSkyblock2Config())
+                            )
+                        }
+                        superiorSkyblock2ConfigLoaded = if (modifiedConfig.configsYaml)
+                            Yaml.decodeFromString(SuperiorSkyblock2Config.serializer(), readText())
+                        else
+                            gson.fromJson(readText(), SuperiorSkyblock2Config::class.java)
+                    }
+                    "&aLoaded config &b$SuperiorSkyblock2Name".send(this)
 
-        loadMessages(this)
+                    val data = gson.fromJson(it, Array<SuperiorSkyblock2Player>::class.java)?.toMutableList() ?: mutableListOf()
+                    superiorPlayersData.clear()
+                    data.forEach {
+                        superiorPlayersData[it.uuid] = it
+                    }
 
-        loadJetpacks(this)
-
-        loadCustomFuels(this)
-        true
-    } ?: sender.run {
-        "&cLoad configs failed!".send(this)
-        false
+                    "&aLoaded database &b${SuperiorSkyblock2Name}".send(this)
+                    "&aHooked to &b$SuperiorSkyblock2Name".send(this)
+                } ?: "&cFailed to load config &b$SuperiorSkyblock2Name".send(sender)
+            }
+        return r
     }
 
     /**
@@ -106,8 +152,8 @@ object Module : Plugin() {
                 handleInvalidConfig(this@apply, messagesFile)
                 saveDefaultMessagesConfig()
                 "&cInvalid Messages config!. Automatic restore with default config!".send(this)
-                //delay(500)
-                ///loadMessages(this)
+                delay(500)
+                loadMessages(this)
             }
         }
     }
@@ -185,8 +231,8 @@ object Module : Plugin() {
                 handleInvalidConfig(this@file, jpFile)
                 saveDefaultJetpacksConfig()
                 "&cInvalid Jetpacks config!. Automatic restore with default config!".send(this)
-                //delay(500)
-                //loadJetpacks(this)
+                delay(500)
+                loadJetpacks(this)
             }
         }
     }
@@ -256,8 +302,8 @@ object Module : Plugin() {
                 handleInvalidConfig(this@file, customFuelFile)
                 saveDefaultCustomFuelsConfig()
                 "&cInvalid CustomFuels config!. Automatic restore with default config!".send(this)
-                //delay(500)
-                //loadCustomFuels(this)
+                delay(500)
+                loadCustomFuels(this)
             }
         }
     }

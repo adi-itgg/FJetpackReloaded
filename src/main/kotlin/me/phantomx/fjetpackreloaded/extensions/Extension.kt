@@ -47,7 +47,6 @@ import kotlin.reflect.full.memberProperties
  * Run safe [block] and cancallable block coroutines
  * @param exceptionMessage {#et} for stack trace, {#em} for exception message
  */
-
 inline fun <T> T.withSafe(noLogs: Boolean = true, exceptionMessage: String = stringEmpty, block: T.() -> Unit) =
     safeRun(noLogs, exceptionMessage) {
         block()
@@ -624,3 +623,8 @@ fun CommandSender.giveCustomFuel(target: Player, customFuel: CustomFuel, amount:
     "&aGive item &6${customFuel.id} &aitem &6x${amount}&r &ato player &e${target.displayName}&r &asuccess!".send(this)
     "&aYou have been given a &6${customFuel.id} &aitem from &6${name}".send(target)
 }
+
+/**
+ * Check is plugin enabled or not
+ */
+fun Server.isPluginActive(plugin: String) = pluginManager.isPluginEnabled(plugin)

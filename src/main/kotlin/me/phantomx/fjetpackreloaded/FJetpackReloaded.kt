@@ -2,9 +2,12 @@ package me.phantomx.fjetpackreloaded
 
 import kotlinx.coroutines.*
 import me.phantomx.fjetpackreloaded.commands.FJRCommands
+import me.phantomx.fjetpackreloaded.commands.hook.SS2FJRCommands
 import me.phantomx.fjetpackreloaded.events.EventListener
 import me.phantomx.fjetpackreloaded.extensions.*
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
+import me.phantomx.fjetpackreloaded.modules.Module.dataPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.id
 import me.phantomx.fjetpackreloaded.modules.Module.idJetpack
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
@@ -67,6 +70,11 @@ class FJetpackReloaded : FJRCommands() {
             console.checkUpdatePlugin(loginEvent = false)
             server.main {
                 pluginManager.registerEvents(EventListener(), plugin)
+                getCommand("ss2fjr")?.let {
+                    it.setExecutor(SS2FJRCommands(plugin).apply {
+                        it.tabCompleter = this
+                    })
+                }
             }
         }
         Metrics(this, id)
@@ -81,6 +89,11 @@ class FJetpackReloaded : FJRCommands() {
         }
         jetpacks.clear()
         customFuel.clear()
+        dataPlayer.clear()
+        superiorPlayersData.clear()
+        withSafe {
+            mainContext.cancelChildren()
+        }
         if (mainContext.isActive)
             runBlocking {
                 (mainContext as Job).cancelAndJoin()
