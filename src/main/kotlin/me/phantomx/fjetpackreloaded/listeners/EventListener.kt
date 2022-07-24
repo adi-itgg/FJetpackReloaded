@@ -11,10 +11,8 @@ import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.GriefPreventionName
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Permission
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.fjetpackReloadedFlag
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorSkyblock2ConfigLoaded
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.fjetpackReloadedSS2Flag
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.fjetpackReloadedSS2Privilege
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
 import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
@@ -70,6 +68,7 @@ class EventListener : Listener, CoroutineScope {
                                     return@i
                                 }
 
+                                // grief prevention
                                 if (server.isPluginActive(GriefPreventionName) &&
                                     (jetpack.onlyAllowInsideOwnGriefPreventionClaim || jetpack.onlyAllowInsideAllGriefPreventionClaim)) {
                                     asPlayerFlying().let { pf ->
@@ -88,36 +87,22 @@ class EventListener : Listener, CoroutineScope {
                                     }
                                 }
 
-                                if (server.isPluginActive(SuperiorSkyblock2Name) && !hasPermission("$SuperiorSkyblock2Permission*"))
-                                    asPlayerFlying().withSafe(false) {
-                                        SuperiorSkyblockAPI.getIslandAt(location)?.let island@{ island ->
-                                            ss2Island = island.uniqueId
-                                            superiorPlayersData[island.owner.uniqueId]?.playersState?.get(uniqueId)?.run {
-                                                if (!this) {
-                                                    ss2Island = null
-                                                    messages.superiorSkyblock2NoPermission.send(player)
-                                                    return
-                                                }
-                                            } ?: run {
-                                                if (island.owner.uniqueId == uniqueId)
-                                                    Unit
-                                            }
-                                        } ?: run {
-                                            if (!superiorSkyblock2ConfigLoaded.defaultIsland) {
-                                                ss2Island = null
-                                                messages.superiorSkyblock2NoPermission.send(player)
+                                // check is SuperiorSkyblock2 available
+                                if (server.isPluginActive(SuperiorSkyblock2Name)) {
+                                    SuperiorSkyblockAPI.getIslandAt(location)?.let {
+                                        if (!jetpack.bypassSuperiorSkyblock2Flag) {
+                                            it.hasSettingsEnabled(fjetpackReloadedSS2Flag).let flag@ {
+                                                if (it) return@flag
+                                                messages.superiorSkyblock2NoPermission.send(this)
                                                 return
                                             }
                                         }
-                                    }
-
-                                // check is ss2 available
-                                if (server.isPluginActive(SuperiorSkyblock2Name)) {
-                                    val island = SuperiorSkyblockAPI.getIslandAt(e.player.location)
-                                    island?.hasSettingsEnabled(fjetpackReloadedFlag)?.let sflag@ {
-                                        if (it) return@sflag
-                                        messages.superiorSkyblock2NoPermission.send(e.player)
-                                        return
+                                        if (!jetpack.bypassSuperiorSkyblock2Privilege) {
+                                            if (!it.hasPermission(this, fjetpackReloadedSS2Privilege)) {
+                                                messages.superiorSkyblock2NoPermission.send(this)
+                                                return
+                                            }
+                                        }
                                     }
                                 }
 

@@ -11,13 +11,7 @@ import me.phantomx.fjetpackreloaded.data.Config
 import me.phantomx.fjetpackreloaded.data.CustomFuel
 import me.phantomx.fjetpackreloaded.data.Jetpack
 import me.phantomx.fjetpackreloaded.data.Messages
-import me.phantomx.fjetpackreloaded.data.hook.SuperiorSkyblock2Config
-import me.phantomx.fjetpackreloaded.data.hook.SuperiorSkyblock2Player
 import me.phantomx.fjetpackreloaded.extensions.*
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2ConfigFile
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorSkyblock2ConfigLoaded
 import me.phantomx.fjetpackreloaded.fields.Plugin
 import me.phantomx.fjetpackreloaded.nms.ItemMetaData
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
@@ -94,41 +88,6 @@ object Module : Plugin() {
             "&cLoad configs failed!".send(this)
             false
         }
-        if (server.isPluginActive(SuperiorSkyblock2Name))
-            getDatabase(SuperiorSkyblock2Name).let {
-                sender.safeRun(false) {
-                    var ss2Config = SuperiorSkyblock2ConfigFile
-                    if (!modifiedConfig.configsYaml) ss2Config = ss2Config.replace(".yml", ".json")
-                    File(dataFolder, ss2Config).apply {
-                        if (!exists() || length() < 1) {
-                            withSafe {
-                                parentFile.mkdirs()
-                                parentFile.mkdir()
-                            }
-                            writeText(
-                                if (modifiedConfig.configsYaml)
-                                    Yaml.encodeToString(SuperiorSkyblock2Config.serializer(), SuperiorSkyblock2Config())
-                                else
-                                    gson.toJson(SuperiorSkyblock2Config())
-                            )
-                        }
-                        superiorSkyblock2ConfigLoaded = if (modifiedConfig.configsYaml)
-                            Yaml.decodeFromString(SuperiorSkyblock2Config.serializer(), readText())
-                        else
-                            gson.fromJson(readText(), SuperiorSkyblock2Config::class.java)
-                    }
-                    "&aLoaded config &b$SuperiorSkyblock2Name".send(this)
-
-                    val data = gson.fromJson(it, Array<SuperiorSkyblock2Player>::class.java)?.toMutableList() ?: mutableListOf()
-                    superiorPlayersData.clear()
-                    data.forEach {
-                        superiorPlayersData[it.uuid] = it
-                    }
-
-                    "&aLoaded database &b${SuperiorSkyblock2Name}".send(this)
-                    "&aHooked to &b$SuperiorSkyblock2Name".send(this)
-                } ?: "&cFailed to load config &b$SuperiorSkyblock2Name".send(sender)
-            }
         return r
     }
 
@@ -177,76 +136,52 @@ object Module : Plugin() {
                         yml.getConfigurationSection(STRING_EMPTY)?.getKeys(false)?.forEach { jpid ->
                             val jp = Jetpack(id = jpid)
 
-
-                            yml.getConfigurationSection(jpid)?.getString("displayName")?.let {
-                                jp.displayName = it
-                            }
-
-                            yml.getConfigurationSection(jpid)?.getStringList("lore")?.let {
-                                jp.lore = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getString("permission")?.let {
-                                jp.permission = it.replace("#id", jpid)
-                            }
-                            yml.getConfigurationSection(jpid)?.getBoolean("canBypassFuel")?.let {
-                                jp.canBypassFuel = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getBoolean("canBypassSprintFuel")?.let {
-                                jp.canBypassSprintFuel = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getString("jetpackItem")?.let {
-                                jp.jetpackItem = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getBoolean("unbreakable")?.let {
-                                jp.unbreakable = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getString("onEmptyFuel")?.let {
-                                jp.onEmptyFuel = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getString("onDeath")?.let {
-                                jp.onDeath = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getBoolean("onlyAllowInsideOwnGriefPreventionClaim")?.let {
-                                jp.onlyAllowInsideOwnGriefPreventionClaim = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getBoolean("onlyAllowInsideAllGriefPreventionClaim")?.let {
-                                jp.onlyAllowInsideAllGriefPreventionClaim = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getInt("customModelData")?.let {
-                                jp.customModelData = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getString("fuel")?.let {
-                                jp.fuel = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getInt("fuelCost")?.let {
-                                jp.fuelCost = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getInt("fuelCostFlySprint")?.let {
-                                jp.fuelCostFlySprint = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getInt("burnRate")?.let {
-                                jp.burnRate = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getString("speed")?.let {
-                                jp.speed = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getString("particleEffect")?.let {
-                                jp.particleEffect = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getInt("particleAmount")?.let {
-                                jp.particleAmount = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getLong("particleDelay")?.let {
-                                jp.particleDelay = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getStringList("flags")?.let {
-                                jp.flags = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getStringList("enchantments")?.let {
-                                jp.enchantments = it
-                            }
-                            yml.getConfigurationSection(jpid)?.getStringList("blockedWorlds")?.let {
-                                jp.blockedWorlds = it
+                            yml.getConfigurationSection(jpid)?.apply {
+                                jp.apply {
+                                    getString("displayName")?.let {
+                                        jp.displayName = it
+                                    }
+                                    getStringList("lore").let {
+                                        lore = it
+                                    }
+                                    getString("permission")?.let {
+                                        permission = it.replace("#id", jpid)
+                                    }
+                                    canBypassFuel = getBoolean("canBypassFuel")
+                                    canBypassSprintFuel = getBoolean("canBypassSprintFuel")
+                                    getString("jetpackItem")?.let {
+                                        jetpackItem = it
+                                    }
+                                    unbreakable = getBoolean("unbreakable")
+                                    getString("onEmptyFuel")?.let {
+                                        onEmptyFuel = it
+                                    }
+                                    getString("onDeath")?.let {
+                                        onDeath = it
+                                    }
+                                    onlyAllowInsideOwnGriefPreventionClaim =
+                                        getBoolean("onlyAllowInsideOwnGriefPreventionClaim")
+                                    onlyAllowInsideAllGriefPreventionClaim =
+                                        getBoolean("onlyAllowInsideAllGriefPreventionClaim")
+                                    customModelData = getInt("customModelData", customModelData)
+                                    getString("fuel")?.let {
+                                        fuel = it
+                                    }
+                                    fuelCost = getInt("fuelCost", fuelCost)
+                                    fuelCostFlySprint = getInt("fuelCostFlySprint", fuelCostFlySprint)
+                                    burnRate = getInt("burnRate", burnRate)
+                                    getString("speed")?.let {
+                                        speed = it
+                                    }
+                                    getString("particleEffect")?.let {
+                                        particleEffect = it
+                                    }
+                                    particleAmount = getInt("particleAmount", particleAmount)
+                                    particleDelay = getLong("particleDelay", particleDelay)
+                                    flags = getStringList("flags")
+                                    enchantments = getStringList("enchantments")
+                                    blockedWorlds = getStringList("blockedWorlds")
+                                }
                             }
 
                             jetpacks[jp.id] = jp.initJetpackSealed()
@@ -300,20 +235,22 @@ object Module : Plugin() {
                             val cf = CustomFuel(id = cfid)
 
                             yml.getConfigurationSection(cfid)?.apply {
-                                getString("customDisplay")?.let {
-                                    cf.customDisplay = it
+                                cf.apply {
+                                    getString("customDisplay")?.let {
+                                        customDisplay = it
+                                    }
+                                    getString("displayName")?.let {
+                                        displayName = it
+                                    }
+                                    lore = getStringList("lore")
+                                    getString("item")?.let {
+                                        item = it
+                                    }
+                                    getString("permission")?.let {
+                                        permission = it.replace("#id", cfid)
+                                    }
+                                    glowing = getBoolean("glowing")
                                 }
-                                getString("displayName")?.let {
-                                    cf.displayName = it
-                                }
-                                cf.lore = getStringList("lore")
-                                getString("item")?.let {
-                                    cf.item = it
-                                }
-                                getString("permission")?.let {
-                                    cf.permission = it.replace("#id", cfid)
-                                }
-                                cf.glowing = getBoolean("glowing")
                             }
 
                             customFuel[cf.id] = cf

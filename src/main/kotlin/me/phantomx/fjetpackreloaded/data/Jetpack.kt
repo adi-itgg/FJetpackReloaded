@@ -67,6 +67,10 @@ data class Jetpack(
     var onlyAllowInsideOwnGriefPreventionClaim: Boolean = false,
     @Comment("Only allow jetpack to fly inside all Grief Prevention claim")
     var onlyAllowInsideAllGriefPreventionClaim: Boolean = false,
+    @Comment("Allow jetpack to bypass flag FJETPACK_RELOADED")
+    var bypassSuperiorSkyblock2Flag: Boolean = false,
+    @Comment("Allow jetpack to bypass privilege FJETPACK_RELOADED")
+    var bypassSuperiorSkyblock2Privilege: Boolean = false,
     @Comment("Set Custom Model Data, -1 to disable")
     var customModelData: Int = -1,
     @Comment("""
