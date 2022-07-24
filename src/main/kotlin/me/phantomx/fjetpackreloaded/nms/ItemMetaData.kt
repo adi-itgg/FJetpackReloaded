@@ -13,6 +13,7 @@ import java.lang.reflect.Method
 
 class ItemMetaData {
 
+    @Suppress("Deprecation")
     @Throws(Exception::class)
     fun setString(itemStack: ItemStack, key: String, value: String?): ItemStack {
         if (serverVersion > 17) {
