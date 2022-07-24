@@ -10,5 +10,9 @@ data class Config(
     @Comment("Enable/Disable Update Notification")
     val updateNotification: Boolean = true,
     @Comment("Set all format configs to yaml")
-    val configsYaml: Boolean = true
+    val configsYaml: Boolean = true,
+    @Comment("""
+        add new Flag FJETPACK_RELOADED in SuperiorSkyblock2 plugin
+    """)
+    val addFlagSuperiorSkyblock2: Boolean = false
 )

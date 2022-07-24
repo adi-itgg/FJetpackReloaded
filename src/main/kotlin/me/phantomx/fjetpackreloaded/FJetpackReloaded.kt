@@ -3,13 +3,14 @@ package me.phantomx.fjetpackreloaded
 import kotlinx.coroutines.*
 import me.phantomx.fjetpackreloaded.commands.FJRCommands
 import me.phantomx.fjetpackreloaded.commands.hook.SS2FJRCommands
-import me.phantomx.fjetpackreloaded.events.EventListener
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_JETPACK
+import me.phantomx.fjetpackreloaded.listeners.EventListener
+import me.phantomx.fjetpackreloaded.listeners.hook.SuperiorSkyblock2Listener
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
 import me.phantomx.fjetpackreloaded.modules.Module.dataPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.id
-import me.phantomx.fjetpackreloaded.modules.Module.idJetpack
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
 import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
 import me.phantomx.fjetpackreloaded.modules.Module.load
@@ -40,8 +41,8 @@ class FJetpackReloaded : FJRCommands() {
             if (serverVersion > 17)
                 metaData.apply {
                     if (getString(
-                            setString(ItemStack(Material.CHAINMAIL_CHESTPLATE), idJetpack, nmsAPIVersion),
-                            idJetpack
+                            setString(ItemStack(Material.CHAINMAIL_CHESTPLATE), ID_JETPACK, nmsAPIVersion),
+                            ID_JETPACK
                         ) != nmsAPIVersion
                     )
                         throw UnsupportedClassVersionError("Unsupported server api version!")
@@ -57,6 +58,8 @@ class FJetpackReloaded : FJRCommands() {
             isEnabled = false
             return
         }
+
+        server.pluginManager.registerEvents(SuperiorSkyblock2Listener(), this)
 
         launch {
             if (load(sender = console))
@@ -82,17 +85,18 @@ class FJetpackReloaded : FJRCommands() {
 
     override fun onDisable() {
         if (mainContext.isActive) mainContext.cancel(CancellationException("Plugin is disabled"))
-        val players = listPlayerUse.entries.iterator()
-        while (players.hasNext()) players.next().withSafe {
-            key.player.turnOff()
-            listPlayerUse.remove(key)
+        listPlayerUse.entries.iterator().withSafe {
+            while (hasNext()) next().withSafe {
+                key.player.turnOff()
+                listPlayerUse.remove(key)
+            }
         }
         jetpacks.clear()
         customFuel.clear()
         dataPlayer.clear()
         superiorPlayersData.clear()
-        withSafe {
-            mainContext.cancelChildren()
+        mainContext.withSafe {
+            cancelChildren()
         }
         if (mainContext.isActive)
             runBlocking {

@@ -18,14 +18,10 @@ data class PlayerFlying(var player: Player) {
     var ss2Island: UUID? = null
 
     fun stop() {
-        stop(null)
-    }
-
-    fun stop(message: String?) {
         if (fuelJob?.isActive == true)
-            fuelJob?.cancel(CancellationException(message ?: "Job Burn Fuel Cancelled"))
+            fuelJob?.cancel(CancellationException("Job Burn Fuel Cancelled"))
         if (particleJob?.isActive == true)
-            particleJob?.cancel(CancellationException(message ?: "Job Particle Effect Cancelled"))
+            particleJob?.cancel(CancellationException("Job Particle Effect Cancelled"))
         player.withSafe {
             listPlayerUse.remove(this@PlayerFlying)
             dataPlayer.remove(uniqueId)

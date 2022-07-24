@@ -3,6 +3,8 @@ package me.phantomx.fjetpackreloaded.commands.hook
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import me.phantomx.fjetpackreloaded.const.GlobalConst.FJETPACK_PERMISSION_PREFIX
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_JETPACK
 import me.phantomx.fjetpackreloaded.data.hook.SuperiorSkyblock2Player
 import me.phantomx.fjetpackreloaded.extensions.isPluginActive
 import me.phantomx.fjetpackreloaded.extensions.safeRun
@@ -11,10 +13,8 @@ import me.phantomx.fjetpackreloaded.extensions.send
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Permission
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
-import me.phantomx.fjetpackreloaded.modules.Module.idJetpack
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.messages
-import me.phantomx.fjetpackreloaded.modules.Module.permission
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -28,13 +28,11 @@ class SS2FJRCommands(private val plugin: JavaPlugin) : CommandExecutor, TabCompl
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean =
         sender.safeRun {
-            if (!label.equals(idJetpack, true) && label.lowercase() != "ss2fjr" || !server.isPluginActive(
-                    SuperiorSkyblock2Name
-                )
+            if (!label.equals(ID_JETPACK, true) && label.lowercase() != "ss2fjr" || !server.isPluginActive(SuperiorSkyblock2Name)
             ) return false
 
             if (args.isEmpty() || args[0].equals("help", true)) {
-                if (hasPermission("${permission}help")) {
+                if (hasPermission("${FJETPACK_PERMISSION_PREFIX}help")) {
                     val stream = plugin.getResource("default/hook/$SuperiorSkyblock2Name.txt") ?: return true
                     stream.use {
                         Scanner(it).use { s ->

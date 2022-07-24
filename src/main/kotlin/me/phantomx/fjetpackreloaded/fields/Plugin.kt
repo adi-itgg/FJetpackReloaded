@@ -16,7 +16,6 @@ abstract class Plugin {
 
     val mainContext: CoroutineContext = Job()
     lateinit var plugin: FJetpackReloaded
-    val stringEmpty = StringBuilder().toString()
     val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
     var nmsAPIVersion = "UNKNOWN"
@@ -32,20 +31,9 @@ abstract class Plugin {
     val dataPlayer: WeakHashMap<UUID, PlayerFlying> = WeakHashMap()
 
     lateinit var metaData: ItemMetaData
-    val idJetpack: String = FJetpackReloaded::class.java.simpleName
-    val idCustomFuel: String = "FJRCustomFuel"
-    val permission = idJetpack.lowercase() + "."
-
-    val fuelIdJetpack = "FJRFuel"
-
-    val jetpackFuelPlaceholder = "{#fuel}"
-    val jetpackFuelValuePlaceholder = "{#fuel_value}"
-
-    val jetpacksYaml = "configs/Jetpacks.yml"
-    val customFuelsYaml = "configs/CustomFuels.yml"
-    val messagesYaml = "configs/Messages.yml"
 
     lateinit var databaseDirectory: File
+
 
 }
 

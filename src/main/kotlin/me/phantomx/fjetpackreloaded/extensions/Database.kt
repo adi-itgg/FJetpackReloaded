@@ -2,21 +2,21 @@ package me.phantomx.fjetpackreloaded.extensions
 
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
+import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.modules.Module.databaseDirectory
 import me.phantomx.fjetpackreloaded.modules.Module.gson
-import me.phantomx.fjetpackreloaded.modules.Module.stringEmpty
 import java.io.*
 
 @Suppress("BlockingMethodInNonBlockingContext")
 suspend fun getDatabase(database: String) = withContext(IO) {
     File(databaseDirectory, "$database.dat").safeRun {
         if (!databaseDirectory.exists() || !exists())
-            stringEmpty
+            STRING_EMPTY
         else
             BufferedReader(FileReader(this)).use {
                 it.readText()
             }
-    } ?: stringEmpty
+    } ?: STRING_EMPTY
 }
 
 @Suppress("BlockingMethodInNonBlockingContext")

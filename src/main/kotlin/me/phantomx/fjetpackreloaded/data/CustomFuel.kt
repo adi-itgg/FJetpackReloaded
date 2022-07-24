@@ -3,6 +3,7 @@ package me.phantomx.fjetpackreloaded.data
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import me.phantomx.fjetpackreloaded.annotations.Pure
+import me.phantomx.fjetpackreloaded.extensions.safeFieldStringYaml
 import net.mamoe.yamlkt.Comment
 
 @Serializable
@@ -30,4 +31,11 @@ data class CustomFuel(
     var permission: String = "fjetpackreloaded.fuel.#id",
     @Comment("Glow this item")
     var glowing: Boolean = true
-)
+) {
+    fun safeStringsClassYaml(): CustomFuel {
+        customDisplay = customDisplay.safeFieldStringYaml()
+        displayName = displayName.safeFieldStringYaml()
+        lore = lore.map { it.safeFieldStringYaml() }.toMutableList()
+        return this
+    }
+}

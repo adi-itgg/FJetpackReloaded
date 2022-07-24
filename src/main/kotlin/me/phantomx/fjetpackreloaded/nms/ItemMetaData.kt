@@ -1,10 +1,10 @@
 package me.phantomx.fjetpackreloaded.nms
 
+import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.extensions.safeRun
 import me.phantomx.fjetpackreloaded.modules.Module.nmsAPIVersion
 import me.phantomx.fjetpackreloaded.modules.Module.plugin
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
-import me.phantomx.fjetpackreloaded.modules.Module.stringEmpty
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
@@ -66,27 +66,27 @@ class ItemMetaData {
             itemStack.itemMeta = itemStack.itemMeta?.apply {
                 persistentDataContainer.apply {
                     NamespacedKey(plugin, key).apply {
-                        return getOrDefault(this, PersistentDataType.STRING, stringEmpty)
+                        return getOrDefault(this, PersistentDataType.STRING, STRING_EMPTY)
                     }
                 }
             }
-            return stringEmpty
+            return STRING_EMPTY
         }
         Class.forName("org.bukkit.craftbukkit.$nmsAPIVersion.inventory.CraftItemStack").let { craftItem ->
             val method: Method = craftItem.getMethod("asNMSCopy", ItemStack::class.java)
             val cIS: Any = method.invoke(craftItem, itemStack)
             val nbt = cIS.javaClass.getMethod(if (serverVersion > 17) "s" else "getTag").invoke(cIS)
-                ?: return stringEmpty
+                ?: return STRING_EMPTY
             val r = nbt.javaClass.getMethod(if (serverVersion > 17) "l" else "getString", String::class.java)
                 .invoke(nbt, key)
-            val rr = r ?: stringEmpty
+            val rr = r ?: STRING_EMPTY
             return rr as String
         }
     }
 
     fun getStringSafe(itemStack: ItemStack, key: String) = itemStack.safeRun {
         getString(this, key)
-    } ?: stringEmpty
+    } ?: STRING_EMPTY
 
     fun isNotItemArmor(itemStack: ItemStack) = itemStack.safeRun {
         val craftItem = Class.forName("org.bukkit.craftbukkit.$nmsAPIVersion.inventory.CraftItemStack")

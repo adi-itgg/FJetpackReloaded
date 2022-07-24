@@ -1,6 +1,7 @@
 package me.phantomx.fjetpackreloaded.data
 
 import kotlinx.serialization.Serializable
+import me.phantomx.fjetpackreloaded.extensions.safeFieldStringYaml
 import net.mamoe.yamlkt.Comment
 
 @Serializable
@@ -38,5 +39,28 @@ data class Messages(
     @Comment("Turn off jetpack if player outside claim while flying")
     var griefPreventionTurnedOffOutsideClaim: String = "&cYou outside claim jetpack is turned off",
     @Comment("Turn on jetpack, but outside player own claim")
-    var griefPreventionOutsideOwnClaim: String = "&cYou are not in your own claim!"
-)
+    var griefPreventionOutsideOwnClaim: String = "&cYou are not in your own claim!",
+    @Comment("If player doesn't have permission to fly inside island")
+    var superiorSkyblock2NoPermission: String = "&cYou don't have permission to fly in this island!"
+) {
+
+    fun safeStringsClassYaml(): Messages {
+        prefix = prefix.safeFieldStringYaml()
+        turnOn = turnOn.safeFieldStringYaml()
+        turnOff = turnOff.safeFieldStringYaml()
+        noPerms = noPerms.safeFieldStringYaml()
+        detached = detached.safeFieldStringYaml()
+        outOfFuel = outOfFuel.safeFieldStringYaml()
+        blockedWorlds = blockedWorlds.safeFieldStringYaml()
+        noFuel = noFuel.safeFieldStringYaml()
+        onEmptyFuelDropped = onEmptyFuelDropped.safeFieldStringYaml()
+        onEmptyFuelRemoved = onEmptyFuelRemoved.safeFieldStringYaml()
+        onDeathDropped = onDeathDropped.safeFieldStringYaml()
+        onDeathRemoved = onDeathRemoved.safeFieldStringYaml()
+        griefPreventionOutsideClaim = griefPreventionOutsideClaim.safeFieldStringYaml()
+        griefPreventionTurnedOffOutsideClaim = griefPreventionTurnedOffOutsideClaim.safeFieldStringYaml()
+        griefPreventionOutsideOwnClaim = griefPreventionOutsideOwnClaim.safeFieldStringYaml()
+        superiorSkyblock2NoPermission = superiorSkyblock2NoPermission.safeFieldStringYaml()
+        return this
+    }
+}

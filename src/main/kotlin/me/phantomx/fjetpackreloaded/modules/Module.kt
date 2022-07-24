@@ -3,6 +3,10 @@ package me.phantomx.fjetpackreloaded.modules
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import me.phantomx.fjetpackreloaded.FJetpackReloaded
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CONFIG_CUSTOM_FUELS_LOCATION
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CONFIG_JETPACKS_LOCATION
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CONFIG_MESSAGES_LOCATION
+import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.data.Config
 import me.phantomx.fjetpackreloaded.data.CustomFuel
 import me.phantomx.fjetpackreloaded.data.Jetpack
@@ -25,8 +29,6 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.json.JSONArray
 import java.io.File
 import java.util.*
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.full.memberProperties
 
 
 object Module : Plugin() {
@@ -134,7 +136,7 @@ object Module : Plugin() {
      * load messages config
      */
     private suspend fun org.bukkit.plugin.Plugin.loadMessages(sender: CommandSender) {
-        val messagesFile = if (modifiedConfig.configsYaml) messagesYaml else messages()
+        val messagesFile = if (modifiedConfig.configsYaml) CONFIG_MESSAGES_LOCATION else messages()
         File(dataFolder, messagesFile).apply {
             sender.safeRun(false) {
                 if (!exists() || !parentFile.exists())
@@ -162,7 +164,7 @@ object Module : Plugin() {
      * load Jetpacks config
      */
     private suspend fun org.bukkit.plugin.Plugin.loadJetpacks(sender: CommandSender) {
-        val jpFile = if (modifiedConfig.configsYaml) jetpacksYaml else jetpacks()
+        val jpFile = if (modifiedConfig.configsYaml) CONFIG_JETPACKS_LOCATION else jetpacks()
         File(dataFolder, jpFile).apply file@{
             sender.safeRun(false) {
                 if (!exists() || !parentFile.exists())
@@ -172,38 +174,81 @@ object Module : Plugin() {
 
                 if (modifiedConfig.configsYaml) {
                     YamlConfiguration.loadConfiguration(this@file).let { yml ->
-                        yml.getConfigurationSection(stringEmpty)?.getKeys(false)?.forEach { jpid ->
-                            val jppath = "$jpid."
+                        yml.getConfigurationSection(STRING_EMPTY)?.getKeys(false)?.forEach { jpid ->
                             val jp = Jetpack(id = jpid)
-                            yml.getConfigurationSection(jpid)?.getKeys(false)?.forEach { key ->
-                                jp::class.memberProperties.forEach field@{
-                                    if (it.name != key || it !is KMutableProperty<*>) return@field
-                                    when (it.returnType.classifier) {
-                                        List::class -> {
-                                            it.setter.call(jp, yml.getStringList("$jppath.$key"))
-                                        }
-                                        Boolean::class -> {
-                                            it.setter.call(jp, yml.getBoolean("$jppath.$key", false))
-                                        }
-                                        Int::class -> {
-                                            it.setter.call(jp, yml.getInt("$jppath.$key", 1))
-                                        }
-                                        Long::class -> {
-                                            it.setter.call(jp, yml.getLong("$jppath.$key", 1))
-                                        }
-                                        else -> {
-                                            yml.getString("$jppath.$key")?.apply {
-                                                it.setter.call(jp,
-                                                    (if (it.name == "permission")
-                                                        lowercase()
-                                                    else
-                                                        this).replace("#id", jpid)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
+
+
+                            yml.getConfigurationSection(jpid)?.getString("displayName")?.let {
+                                jp.displayName = it
                             }
+
+                            yml.getConfigurationSection(jpid)?.getStringList("lore")?.let {
+                                jp.lore = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getString("permission")?.let {
+                                jp.permission = it.replace("#id", jpid)
+                            }
+                            yml.getConfigurationSection(jpid)?.getBoolean("canBypassFuel")?.let {
+                                jp.canBypassFuel = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getBoolean("canBypassSprintFuel")?.let {
+                                jp.canBypassSprintFuel = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getString("jetpackItem")?.let {
+                                jp.jetpackItem = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getBoolean("unbreakable")?.let {
+                                jp.unbreakable = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getString("onEmptyFuel")?.let {
+                                jp.onEmptyFuel = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getString("onDeath")?.let {
+                                jp.onDeath = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getBoolean("onlyAllowInsideOwnGriefPreventionClaim")?.let {
+                                jp.onlyAllowInsideOwnGriefPreventionClaim = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getBoolean("onlyAllowInsideAllGriefPreventionClaim")?.let {
+                                jp.onlyAllowInsideAllGriefPreventionClaim = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getInt("customModelData")?.let {
+                                jp.customModelData = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getString("fuel")?.let {
+                                jp.fuel = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getInt("fuelCost")?.let {
+                                jp.fuelCost = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getInt("fuelCostFlySprint")?.let {
+                                jp.fuelCostFlySprint = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getInt("burnRate")?.let {
+                                jp.burnRate = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getString("speed")?.let {
+                                jp.speed = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getString("particleEffect")?.let {
+                                jp.particleEffect = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getInt("particleAmount")?.let {
+                                jp.particleAmount = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getLong("particleDelay")?.let {
+                                jp.particleDelay = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getStringList("flags")?.let {
+                                jp.flags = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getStringList("enchantments")?.let {
+                                jp.enchantments = it
+                            }
+                            yml.getConfigurationSection(jpid)?.getStringList("blockedWorlds")?.let {
+                                jp.blockedWorlds = it
+                            }
+
                             jetpacks[jp.id] = jp.initJetpackSealed()
                             "&aLoaded Jetpack: &6&b${jp.id}".send(this)
                         }
@@ -241,7 +286,7 @@ object Module : Plugin() {
      * load Custom Fuels config
      */
     private suspend fun org.bukkit.plugin.Plugin.loadCustomFuels(sender: CommandSender) {
-        val customFuelFile = if (modifiedConfig.configsYaml) customFuelsYaml else customFuels()
+        val customFuelFile = if (modifiedConfig.configsYaml) CONFIG_CUSTOM_FUELS_LOCATION else customFuels()
         File(dataFolder, customFuelFile).apply file@{
             sender.safeRun(false) {
                 if (!exists() || !parentFile.exists())
@@ -251,32 +296,26 @@ object Module : Plugin() {
 
                 if (modifiedConfig.configsYaml) {
                     YamlConfiguration.loadConfiguration(this@file).let { yml ->
-                        yml.getConfigurationSection(stringEmpty)?.getKeys(false)?.forEach { cfid ->
-                            val cfpath = "$cfid."
+                        yml.getConfigurationSection(STRING_EMPTY)?.getKeys(false)?.forEach { cfid ->
                             val cf = CustomFuel(id = cfid)
-                            yml.getConfigurationSection(cfid)?.getKeys(false)?.forEach { key ->
-                                cf::class.memberProperties.forEach field@{
-                                    if (it.name != key || it !is KMutableProperty<*>) return@field
-                                    when (it.returnType.classifier) {
-                                        List::class -> {
-                                            it.setter.call(cf, yml.getStringList("$cfpath.$key"))
-                                        }
-                                        Boolean::class -> {
-                                            it.setter.call(cf, yml.getBoolean("$cfpath.$key", false))
-                                        }
-                                        else -> {
-                                            yml.getString("$cfpath.$key")?.apply {
-                                                it.setter.call(cf,
-                                                    (if (it.name == "permission")
-                                                        lowercase()
-                                                    else
-                                                        this).replace("#id", cfid)
-                                                )
-                                            }
-                                        }
-                                    }
+
+                            yml.getConfigurationSection(cfid)?.apply {
+                                getString("customDisplay")?.let {
+                                    cf.customDisplay = it
                                 }
+                                getString("displayName")?.let {
+                                    cf.displayName = it
+                                }
+                                cf.lore = getStringList("lore")
+                                getString("item")?.let {
+                                    cf.item = it
+                                }
+                                getString("permission")?.let {
+                                    cf.permission = it.replace("#id", cfid)
+                                }
+                                cf.glowing = getBoolean("glowing")
                             }
+
                             customFuel[cf.id] = cf
                             "&aLoaded CustomFuel: &6${cf.id}".send(this)
                         } ?: throw InvalidConfigurationException()

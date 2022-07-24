@@ -3,6 +3,7 @@ package me.phantomx.fjetpackreloaded.data
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import me.phantomx.fjetpackreloaded.annotations.Pure
+import me.phantomx.fjetpackreloaded.extensions.safeFieldStringYaml
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
 import me.phantomx.fjetpackreloaded.sealeds.OnEmptyFuel
 import net.mamoe.yamlkt.Comment
@@ -70,8 +71,8 @@ data class Jetpack(
     var customModelData: Int = -1,
     @Comment("""
         The Fuel Item Material ID
-        For CustomFuels.yml using ID with prefix @
-        Example: @CVIP
+        For CustomFuels.yml using ID with prefix #
+        Example: #CVIP
     """)
     var fuel: String = "Coal",
     @Comment("Fuel cost amount")
@@ -118,4 +119,11 @@ data class Jetpack(
     lateinit var onNoFuel: OnEmptyFuel
     @Transient
     lateinit var onDied: OnDeath
+
+    fun safeStringsClassYaml(): Jetpack {
+        displayName = displayName.safeFieldStringYaml()
+        lore = lore.map { it.safeFieldStringYaml() }.toMutableList()
+        return this
+    }
+
 }

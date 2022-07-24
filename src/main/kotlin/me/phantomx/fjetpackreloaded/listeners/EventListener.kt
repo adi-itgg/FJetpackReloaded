@@ -1,24 +1,26 @@
-package me.phantomx.fjetpackreloaded.events
+package me.phantomx.fjetpackreloaded.listeners
 
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI
 import kotlinx.coroutines.*
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CUSTOM_FUEL_PREFIX
+import me.phantomx.fjetpackreloaded.const.GlobalConst.FJETPACK_PERMISSION_PREFIX
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_CUSTOM_FUEL
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_FUEL_JETPACK
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_JETPACK
+import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.GriefPreventionName
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Permission
+import me.phantomx.fjetpackreloaded.fields.HookPlugin.fjetpackReloadedFlag
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorSkyblock2ConfigLoaded
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
-import me.phantomx.fjetpackreloaded.modules.Module.fuelIdJetpack
-import me.phantomx.fjetpackreloaded.modules.Module.idCustomFuel
-import me.phantomx.fjetpackreloaded.modules.Module.idJetpack
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
 import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.messages
-import me.phantomx.fjetpackreloaded.modules.Module.permission
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
-import me.phantomx.fjetpackreloaded.modules.Module.stringEmpty
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
 import me.phantomx.fjetpackreloaded.sealeds.OnEmptyFuel
 import me.ryanhamshire.GriefPrevention.GriefPrevention
@@ -46,11 +48,13 @@ import kotlin.math.sin
 
 @Suppress("unused")
 class EventListener : Listener, CoroutineScope {
+
     override val coroutineContext: CoroutineContext
         get() = mainContext
 
     @EventHandler(priority = EventPriority.LOWEST)
     fun onCrouch(e: PlayerToggleSneakEvent) = e.withSafe {
+        if (!mainContext.isActive) return
         player.apply player@{
             equipment?.let {
                 if (it.armorContents.isEmpty()) return
@@ -60,7 +64,7 @@ class EventListener : Listener, CoroutineScope {
                         if (armor.type == Material.AIR) return@i
                         armor.itemMeta?.let { meta ->
                             if (isSneaking || !meta.hasLore() || !(this as LivingEntity).isOnGround) return@i
-                            jetpacks[armor.get(idJetpack)]?.let { jetpack ->
+                            jetpacks[armor.get(ID_JETPACK)]?.let { jetpack ->
                                 if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.use")) {
                                     messages.noPerms.send(this)
                                     return@i
@@ -71,7 +75,7 @@ class EventListener : Listener, CoroutineScope {
                                     asPlayerFlying().let { pf ->
                                         GriefPrevention.instance.dataStore.getClaimAt(location, true, true, pf.griefClaim)?.let { claim ->
                                             if (jetpack.onlyAllowInsideOwnGriefPreventionClaim && !jetpack.onlyAllowInsideAllGriefPreventionClaim) {
-                                                if (claim.getOwnerID() != uniqueId && !isOp && !hasPermission("$permission*")) {
+                                                if (claim.getOwnerID() != uniqueId && !isOp && !hasPermission("$FJETPACK_PERMISSION_PREFIX*")) {
                                                     messages.griefPreventionOutsideOwnClaim.send(this)
                                                     return
                                                 }
@@ -91,7 +95,7 @@ class EventListener : Listener, CoroutineScope {
                                             superiorPlayersData[island.owner.uniqueId]?.playersState?.get(uniqueId)?.run {
                                                 if (!this) {
                                                     ss2Island = null
-                                                    "&cYou didn't allowed to fly inside this island!".send(player)
+                                                    messages.superiorSkyblock2NoPermission.send(player)
                                                     return
                                                 }
                                             } ?: run {
@@ -101,12 +105,21 @@ class EventListener : Listener, CoroutineScope {
                                         } ?: run {
                                             if (!superiorSkyblock2ConfigLoaded.defaultIsland) {
                                                 ss2Island = null
-                                                "&cYou didn't allowed to fly inside this island!".send(player)
+                                                messages.superiorSkyblock2NoPermission.send(player)
                                                 return
                                             }
                                         }
                                     }
 
+                                // check is ss2 available
+                                if (server.isPluginActive(SuperiorSkyblock2Name)) {
+                                    val island = SuperiorSkyblockAPI.getIslandAt(e.player.location)
+                                    island?.hasSettingsEnabled(fjetpackReloadedFlag)?.let sflag@ {
+                                        if (it) return@sflag
+                                        messages.superiorSkyblock2NoPermission.send(e.player)
+                                        return
+                                    }
+                                }
 
                                 if (allowFlight && listPlayerUse[asPlayerFlying()] != null) {
                                     turnOff(jetpack)
@@ -121,18 +134,18 @@ class EventListener : Listener, CoroutineScope {
 
                                 var fuel: Long
                                 safeRun {
-                                    if (!jetpack.fuel.startsWith("@")) {
+                                    if (!jetpack.fuel.startsWith(CUSTOM_FUEL_PREFIX)) {
                                         val fuelMaterial = Material.valueOf(jetpack.fuel.uppercase())
                                         if (fuelMaterial != Material.AIR) {
                                             val dFuel = jetpack.fuel.replace("_", " ")
-                                            fuel = armor.get(fuelIdJetpack).toLongSafe()
+                                            fuel = armor.get(ID_FUEL_JETPACK).toLongSafe()
                                             if (fuel < jetpack.fuelCost) {
                                                 messages.noFuel.replace("%fuel_item%", dFuel).send(this)
                                                 return@i
                                             }
                                         }
                                     } else {
-                                        fuel = armor.get(fuelIdJetpack).toLongSafe()
+                                        fuel = armor.get(ID_FUEL_JETPACK).toLongSafe()
                                         if (fuel < jetpack.fuelCost) {
                                             customFuel[jetpack.fuel.substring(1)]?.let {
                                                 messages.noFuel.replace("%fuel_item%", displayName).send(this)
@@ -160,7 +173,7 @@ class EventListener : Listener, CoroutineScope {
                                                             iterator.next()?.let { armor ->
                                                                 var lArmor = armor
                                                                 if (lArmor.type != Material.AIR)
-                                                                    jetpacks[lArmor.get(idJetpack)]?.let jetpack@{ lJetpack ->
+                                                                    jetpacks[lArmor.get(ID_JETPACK)]?.let jetpack@{ lJetpack ->
                                                                         if (jetpack.id != lJetpack.id) return@jetpack
                                                                         if (!hasPermission(lJetpack.permission) && !hasPermission(
                                                                                 "${lJetpack.permission}.use"
@@ -174,7 +187,7 @@ class EventListener : Listener, CoroutineScope {
                                                                         }
 
                                                                         fuel =
-                                                                            lArmor.get(fuelIdJetpack).toLongSafe()
+                                                                            lArmor.get(ID_FUEL_JETPACK).toLongSafe()
                                                                         if (!lJetpack.canBypassFuel || !hasPermission(
                                                                                 "${lJetpack.permission}.bypass"
                                                                             )
@@ -322,6 +335,7 @@ class EventListener : Listener, CoroutineScope {
     @Suppress("Deprecation")
     @EventHandler
     fun onDamagedArmorPlayer(e: EntityDamageEvent) = e.withSafe {
+        if (!mainContext.isActive) return
         val entity = entity as? Player ?: return
         val eq = entity.equipment ?: return
         val armors = eq.armorContents
@@ -330,7 +344,7 @@ class EventListener : Listener, CoroutineScope {
         while (iterator.hasNext()) {
             iterator.next().withSafe item@{
                 if (this == null || type == Material.AIR) return@item
-                jetpacks[get(idJetpack)]?.let {
+                jetpacks[get(ID_JETPACK)]?.let {
                     if (serverVersion > 16) {
                         itemMeta = itemMeta?.apply {
                             isUnbreakable = it.unbreakable
@@ -344,6 +358,7 @@ class EventListener : Listener, CoroutineScope {
 
     @EventHandler
     fun onPlayerDied(e: EntityDeathEvent) = e.withSafe {
+        if (!mainContext.isActive) return
         if (entity.type != EntityType.PLAYER) return
         val p: Player = entity as Player
 
@@ -360,7 +375,7 @@ class EventListener : Listener, CoroutineScope {
                 armors.iterator().let {
                     while (it.hasNext())
                         it.next()?.apply item@{
-                            val id = get(idJetpack)
+                            val id = get(ID_JETPACK)
                             if (id.isNotEmpty() && id == jp.id) {
 
                                 when (jp.onDied) {
@@ -371,7 +386,7 @@ class EventListener : Listener, CoroutineScope {
                                             eqArmors.iterator().apply {
                                                 while (hasNext())
                                                     next()?.let { item ->
-                                                        if (item.get(idJetpack) == get(idJetpack)) {
+                                                        if (item.get(ID_JETPACK) == get(ID_JETPACK)) {
                                                             dropped = true
                                                             val dropItem = item.clone()
                                                             main {
@@ -412,14 +427,14 @@ class EventListener : Listener, CoroutineScope {
 
     @EventHandler
     fun onInventoryClick(e: InventoryClickEvent) = e.withSafe {
-        if (this is InventoryCreativeEvent) return
+        if (this is InventoryCreativeEvent || !mainContext.isActive) return
         (whoClicked as Player).apply player@{
             cursor?.let { cursorItem ->
                 currentItem?.let { slotItem ->
                     if (!slotItem.hasItemMeta() || slotItem.type == Material.AIR || slotItem.amount == 0) return
                     if (click != ClickType.LEFT && click != ClickType.RIGHT && click == ClickType.WINDOW_BORDER_LEFT && click == ClickType.WINDOW_BORDER_RIGHT)
                         return
-                    jetpacks[slotItem.get(idJetpack)]?.let { jetpack ->
+                    jetpacks[slotItem.get(ID_JETPACK)]?.let { jetpack ->
 
                         if (slotType == InventoryType.SlotType.ARMOR)
                             listPlayerUse[asPlayerFlying()]?.let {
@@ -429,14 +444,16 @@ class EventListener : Listener, CoroutineScope {
                                     return
                             }
 
-                        if (jetpack.fuel.startsWith("@"))
-                            customFuel[cursorItem.get(idCustomFuel).replace("@", stringEmpty)]?.apply {
+
+                        if (jetpack.fuel.startsWith(CUSTOM_FUEL_PREFIX)) {
+                            val key = cursorItem.get(ID_CUSTOM_FUEL).replace(CUSTOM_FUEL_PREFIX, STRING_EMPTY)
+                            customFuel[key]?.apply {
                                 if (!hasPermission(permission)) {
                                     messages.noPerms.send(this@player)
                                     return
                                 }
                             } ?: return
-                        else if (cursorItem.type != Material.valueOf(jetpack.fuel.uppercase().trim()))
+                        } else if (cursorItem.type != Material.valueOf(jetpack.fuel.uppercase().trim()))
                             return
 
                         if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.refuel")) {
@@ -448,7 +465,7 @@ class EventListener : Listener, CoroutineScope {
 
                         val addFuelAmount = if (isLeftClick) cursorItem.amount else 1
 
-                        val fuel = slotItem.get(fuelIdJetpack).toLongSafe()
+                        val fuel = slotItem.get(ID_FUEL_JETPACK).toLongSafe()
 
                         currentItem = slotItem.update((fuel + addFuelAmount).toString(), jetpack)
                         if (isLeftClick)
