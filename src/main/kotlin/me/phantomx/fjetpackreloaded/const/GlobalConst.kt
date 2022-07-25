@@ -13,6 +13,7 @@ object GlobalConst {
     // Placeholders
     const val JETPACK_FUEL_PLACEHOLDER = "{#fuel}"
     const val JETPACK_FUEL_VALUE_PLACEHOLDER = "{#fuel_value}"
+    const val JETPACK_FUEL_MESSAGE_PLACEHOLDER = "%fuel_item%"
 
     const val CONFIG_JETPACKS_LOCATION = "configs/Jetpacks.yml"
     const val CONFIG_CUSTOM_FUELS_LOCATION = "configs/CustomFuels.yml"

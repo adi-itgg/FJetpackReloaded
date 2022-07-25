@@ -40,8 +40,12 @@ data class Messages(
     var griefPreventionTurnedOffOutsideClaim: String = "&cYou outside claim jetpack is turned off",
     @Comment("Turn on jetpack, but outside player own claim")
     var griefPreventionOutsideOwnClaim: String = "&cYou are not in your own claim!",
+    @Comment("If island flag is not allowed to fly inside island")
+    var superiorSkyblock2NoFlag: String = "&cYou're not allowed to fly in this island!",
     @Comment("If player doesn't have permission to fly inside island")
-    var superiorSkyblock2NoPermission: String = "&cYou don't have permission to fly in this island!"
+    var superiorSkyblock2NoPermission: String = "&cYou don't have permission to fly in this island!",
+    @Comment("If player doesn't have permission to fly inside island")
+    var superiorSkyblock2OutsideIsland: String = "&cJetpack turned off, you're outside the island!"
 ) {
 
     fun safeStringsClassYaml(): Messages {
@@ -60,7 +64,9 @@ data class Messages(
         griefPreventionOutsideClaim = griefPreventionOutsideClaim.safeFieldStringYaml()
         griefPreventionTurnedOffOutsideClaim = griefPreventionTurnedOffOutsideClaim.safeFieldStringYaml()
         griefPreventionOutsideOwnClaim = griefPreventionOutsideOwnClaim.safeFieldStringYaml()
+        superiorSkyblock2NoFlag = superiorSkyblock2NoFlag.safeFieldStringYaml()
         superiorSkyblock2NoPermission = superiorSkyblock2NoPermission.safeFieldStringYaml()
+        superiorSkyblock2OutsideIsland = superiorSkyblock2OutsideIsland.safeFieldStringYaml()
         return this
     }
 }

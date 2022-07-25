@@ -15,13 +15,15 @@ data class PlayerFlying(var player: Player) {
     var particleJob: Job? = null
 
     var griefClaim: Claim? = null
-    var ss2Island: UUID? = null
+    var ss2IslandUUID: UUID? = null
 
     fun stop() {
         if (fuelJob?.isActive == true)
             fuelJob?.cancel(CancellationException("Job Burn Fuel Cancelled"))
         if (particleJob?.isActive == true)
             particleJob?.cancel(CancellationException("Job Particle Effect Cancelled"))
+        griefClaim = null
+        ss2IslandUUID = null
         player.withSafe {
             listPlayerUse.remove(this@PlayerFlying)
             dataPlayer.remove(uniqueId)

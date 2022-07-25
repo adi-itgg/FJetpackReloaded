@@ -7,6 +7,7 @@ import me.phantomx.fjetpackreloaded.const.GlobalConst.FJETPACK_PERMISSION_PREFIX
 import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_CUSTOM_FUEL
 import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_FUEL_JETPACK
 import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_JETPACK
+import me.phantomx.fjetpackreloaded.const.GlobalConst.JETPACK_FUEL_MESSAGE_PLACEHOLDER
 import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.GriefPreventionName
@@ -68,6 +69,12 @@ class EventListener : Listener, CoroutineScope {
                                     return@i
                                 }
 
+                                // force allow to disable jetpack
+                                if (allowFlight && listPlayerUse[asPlayerFlying()] != null) {
+                                    turnOff(jetpack)
+                                    return@i
+                                }
+
                                 // grief prevention
                                 if (server.isPluginActive(GriefPreventionName) &&
                                     (jetpack.onlyAllowInsideOwnGriefPreventionClaim || jetpack.onlyAllowInsideAllGriefPreventionClaim)) {
@@ -90,25 +97,21 @@ class EventListener : Listener, CoroutineScope {
                                 // check is SuperiorSkyblock2 available
                                 if (server.isPluginActive(SuperiorSkyblock2Name)) {
                                     SuperiorSkyblockAPI.getIslandAt(location)?.let {
-                                        if (!jetpack.bypassSuperiorSkyblock2Flag) {
+                                        if (!jetpack.bypassSuperiorSkyblock2Flag)
                                             it.hasSettingsEnabled(fjetpackReloadedSS2Flag).let flag@ {
                                                 if (it) return@flag
-                                                messages.superiorSkyblock2NoPermission.send(this)
+                                                messages.superiorSkyblock2NoFlag.send(this)
                                                 return
                                             }
-                                        }
-                                        if (!jetpack.bypassSuperiorSkyblock2Privilege) {
+
+                                        if (!jetpack.bypassSuperiorSkyblock2Privilege)
                                             if (!it.hasPermission(this, fjetpackReloadedSS2Privilege)) {
                                                 messages.superiorSkyblock2NoPermission.send(this)
                                                 return
                                             }
-                                        }
+                                        // allowed
+                                        asPlayerFlying().ss2IslandUUID = it.uniqueId
                                     }
-                                }
-
-                                if (allowFlight && listPlayerUse[asPlayerFlying()] != null) {
-                                    turnOff(jetpack)
-                                    return@i
                                 }
 
                                 for (world in jetpack.blockedWorlds) {
@@ -125,7 +128,7 @@ class EventListener : Listener, CoroutineScope {
                                             val dFuel = jetpack.fuel.replace("_", " ")
                                             fuel = armor.get(ID_FUEL_JETPACK).toLongSafe()
                                             if (fuel < jetpack.fuelCost) {
-                                                messages.noFuel.replace("%fuel_item%", dFuel).send(this)
+                                                messages.noFuel.replace(JETPACK_FUEL_MESSAGE_PLACEHOLDER, dFuel).send(this)
                                                 return@i
                                             }
                                         }
@@ -133,7 +136,7 @@ class EventListener : Listener, CoroutineScope {
                                         fuel = armor.get(ID_FUEL_JETPACK).toLongSafe()
                                         if (fuel < jetpack.fuelCost) {
                                             customFuel[jetpack.fuel.substring(1)]?.let {
-                                                messages.noFuel.replace("%fuel_item%", displayName).send(this)
+                                                messages.noFuel.replace(JETPACK_FUEL_MESSAGE_PLACEHOLDER, displayName).send(this)
                                             } ?: "&cError invalid Custom Fuel".send(this)
                                             return@i
                                         }
@@ -171,6 +174,7 @@ class EventListener : Listener, CoroutineScope {
                                                                             return@stopJob true
                                                                         }
 
+                                                                        // check fuel
                                                                         fuel =
                                                                             lArmor.get(ID_FUEL_JETPACK).toLongSafe()
                                                                         if (!lJetpack.canBypassFuel || !hasPermission(
@@ -196,6 +200,8 @@ class EventListener : Listener, CoroutineScope {
                                                                             }
                                                                             fuel -= lJetpack.fuelCostFlySprint
                                                                         }
+
+
                                                                         lArmor =
                                                                             lArmor.update(fuel.toString(), lJetpack)
                                                                         equipment?.apply {
@@ -220,17 +226,31 @@ class EventListener : Listener, CoroutineScope {
                                                         return@launch
                                                     }
                                                 }
-                                                ss2Island?.withSafe {
-                                                    SuperiorSkyblockAPI.getIslandAt(player.location)?.let island@ {
-                                                        val fromIsland = SuperiorSkyblockAPI.getIslandByUUID(this) ?: return@island null
-                                                        if (it.uniqueId != fromIsland.uniqueId) {
-                                                            ss2Island = null
-                                                            null
-                                                        } else
-                                                            Unit
+                                                ss2IslandUUID?.withSafe {
+                                                    SuperiorSkyblockAPI.getIslandAt(player.location)?.let {
+                                                        if (it.uniqueId != this) {
+                                                            // check new island is allowed or not
+                                                            // for flag
+                                                            if (!jetpack.bypassSuperiorSkyblock2Flag)
+                                                                it.hasSettingsEnabled(fjetpackReloadedSS2Flag).let flag@ {
+                                                                    if (it) return@flag
+                                                                    messages.superiorSkyblock2NoFlag.send(player)
+                                                                    turnOff(noMessage = true)
+                                                                    return@launch
+                                                                }
+
+                                                            // for permissions
+                                                            if (!jetpack.bypassSuperiorSkyblock2Privilege)
+                                                                if (!it.hasPermission(player, fjetpackReloadedSS2Privilege)) {
+                                                                    messages.superiorSkyblock2NoPermission.send(player)
+                                                                    turnOff(noMessage = true)
+                                                                    return@launch
+                                                                }
+                                                        }
+                                                        Unit
                                                     } ?: run {
                                                         stop = true
-                                                        "&cJetpack turned off, you outside the island".send(player)
+                                                        messages.superiorSkyblock2OutsideIsland.send(player)
                                                         turnOff(noMessage = true)
                                                         return@launch
                                                     }
