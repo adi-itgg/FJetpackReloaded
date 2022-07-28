@@ -54,7 +54,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
             }
 
         if (args.isEmpty() || args[0].equals("help", ignoreCase = true) || notContainsCmd) {
-            if (hasPermission("${FJETPACK_PERMISSION_PREFIX}help")) {
+            if (hasPermission("${FJETPACK_PERMISSION_PREFIX}help") || isAdminOrOp()) {
                 val stream = getResource("default/help.txt") ?: return true
                 stream.use {
                     Scanner(it).use { s ->
@@ -68,7 +68,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[1], ignoreCase = true)) {
-            if (hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[1]))
+            if (hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[1]) || isAdminOrOp())
                 launch {
                     if (plugin.load(sender = sender))
                         "&aReload Config Success!".send(target = sender)
@@ -79,7 +79,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[7], ignoreCase = true)) {
-            if (hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[7]))
+            if (hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[7]) || isAdminOrOp())
                 launch {
                     checkUpdatePlugin(loginEvent = false)
                 }
@@ -89,7 +89,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[2], ignoreCase = true)) {
-            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[2])) {
+            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[2]) && !isAdminOrOp()) {
                 messages.noPerms.send(this)
                 return true
             }
@@ -129,7 +129,8 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
             args[0].equals(commandList[4], ignoreCase = true)
         ) {
             if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[3]) &&
-                !hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[4])
+                !hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[4]) &&
+                !isAdminOrOp()
             ) {
                 messages.noPerms.send(this)
                 return true
@@ -159,7 +160,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[8], ignoreCase = true)) {
-            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[8])) {
+            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[8]) && !isAdminOrOp()) {
                 messages.noPerms.send(this)
                 return true
             }
@@ -195,7 +196,10 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                 ignoreCase = true
             )
         ) {
-            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[5]) && !hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[6])) {
+            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[5]) &&
+                !hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[6]) &&
+                !isAdminOrOp()
+            ) {
                 messages.noPerms.send(this)
                 return true
             }
@@ -230,7 +234,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         alias: String,
         args: Array<out String>
     ): MutableList<String> = sender.run {
-        if (!hasPermission("$FJETPACK_PERMISSION_PREFIX*") && !hasPermission(FJETPACK_PERMISSION_PREFIX + args[0]))
+        if (!isAdminOrOp() && !hasPermission(FJETPACK_PERMISSION_PREFIX + args[0]))
             return mutableListOf()
 
         var completions: MutableList<String> = ArrayList()

@@ -7,10 +7,10 @@ import me.phantomx.fjetpackreloaded.listeners.EventListener
 import me.phantomx.fjetpackreloaded.listeners.hook.SuperiorSkyblock2Listener
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
-import me.phantomx.fjetpackreloaded.modules.Module.dataPlayer
+import me.phantomx.fjetpackreloaded.modules.Module.dataFJRPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.id
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
-import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
+import me.phantomx.fjetpackreloaded.modules.Module.fjrPlayersActive
 import me.phantomx.fjetpackreloaded.modules.Module.load
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.metaData
@@ -48,10 +48,10 @@ class FJetpackReloaded : FJRCommands() {
             "&6Detected Server: &a${Bukkit.getName()} v$serverVersion - API $nmsAPIVersion"
         } catch (e: Exception) {
             e.printStackTrace()
-            "&cNot tested server version ${server.version} disabling plugin...".send(console, true)
-            "&cUnknown Server: &a${Bukkit.getName()} ${Bukkit.getBukkitVersion()}".send(console, true)
+            "&cNot tested server version ${server.version} disabling plugin...".send(console)
+            "&cUnknown Server: &a${Bukkit.getName()} ${Bukkit.getBukkitVersion()}".send(console)
             "&cThis plugin will not work because this server has unknown version!"
-        }.send(console, true)
+        }.send(console)
         if (serverVersion == 0) {
             isEnabled = false
             return
@@ -61,32 +61,30 @@ class FJetpackReloaded : FJRCommands() {
 
         launch {
             if (load(sender = console))
-                "&a&lAll configs has been loaded".send(console)
+                "&a&lAll configs has been loaded".send()
             else {
-                main {
+                mainThread {
                     isEnabled = false
                 }
                 return@launch
             }
-            console.checkUpdatePlugin(loginEvent = false)
-            server.main {
+            server.mainThread {
                 pluginManager.registerEvents(EventListener(), plugin)
             }
+            console.checkUpdatePlugin(loginEvent = false)
         }
         Metrics(this, id)
     }
 
     override fun onDisable() {
+        "&cCancelling all jobs running".send()
         if (mainContext.isActive) mainContext.cancel(CancellationException("Plugin is disabled"))
-        listPlayerUse.entries.iterator().withSafe {
-            while (hasNext()) next().withSafe {
-                key.player.turnOff()
-                listPlayerUse.remove(key)
-            }
+        fjrPlayersActive.entries.iterator().withSafe {
+            while (hasNext()) next().key.safeUnloadPluginXSS2()
         }
         jetpacks.clear()
         customFuel.clear()
-        dataPlayer.clear()
+        dataFJRPlayer.clear()
         mainContext.withSafe {
             cancelChildren()
         }
@@ -94,6 +92,7 @@ class FJetpackReloaded : FJRCommands() {
             runBlocking {
                 (mainContext as Job).cancelAndJoin()
             }
+        "&cCancalled all jobs and plugin has been unloaded".send()
     }
 
 }

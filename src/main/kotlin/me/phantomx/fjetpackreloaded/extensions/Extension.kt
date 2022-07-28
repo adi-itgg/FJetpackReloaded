@@ -2,6 +2,7 @@ package me.phantomx.fjetpackreloaded.extensions
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import me.phantomx.fjetpackreloaded.const.GlobalConst.CUSTOM_FUEL_PREFIX
@@ -15,9 +16,9 @@ import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.data.CustomFuel
 import me.phantomx.fjetpackreloaded.data.Jetpack
 import me.phantomx.fjetpackreloaded.data.Messages
-import me.phantomx.fjetpackreloaded.data.PlayerFlying
+import me.phantomx.fjetpackreloaded.data.FJRPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
-import me.phantomx.fjetpackreloaded.modules.Module.dataPlayer
+import me.phantomx.fjetpackreloaded.modules.Module.dataFJRPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.gson
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.messages
@@ -36,10 +37,13 @@ import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.LeatherArmorMeta
 import org.bukkit.plugin.Plugin
+import org.bukkit.scheduler.BukkitRunnable
 import java.io.File
 import java.net.URL
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Run safe [block] and cancallable block coroutines
@@ -115,13 +119,37 @@ fun String.translateAllCodes() = translateHex().translateCodes()
 suspend fun String.sendDefault(target: CommandSender) = withContext(mainContext) { this@sendDefault.send(target) }
 
 /**
- * run on main Thread
+ * run on Main thread without blocking current thread
  */
-inline fun <T> T.main(crossinline block: T.(T) -> Unit): T {
-    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin) {
-        block(this)
-    }
+inline fun <T> T.mainThread(crossinline block: T.() -> Unit): T {
+    object : BukkitRunnable() {
+        override fun run() {
+            block()
+        }
+    }.runTask(plugin)
     return this
+}
+
+/**
+ * run sync [block] on main Thread
+ */
+suspend inline fun <T, R> T.withContextMain(crossinline block: T.() -> R): R {
+    return suspendCancellableCoroutine {
+        val task = object : BukkitRunnable() {
+            override fun run() {
+                try {
+                    val r = block()
+                    if (it.isCancelled) return
+                    it.resume(r)
+                } catch (e: CancellationException) {
+                    it.resumeWithException(e)
+                }
+            }
+        }.runTask(plugin)
+        it.invokeOnCancellation {
+            task.cancel()
+        }
+    }
 }
 
 /**
@@ -151,7 +179,7 @@ fun String.translateHex(): String = safeRun {
  */
 @Suppress("BlockingMethodInNonBlockingContext")
 suspend fun CommandSender.checkUpdatePlugin(loginEvent: Boolean) {
-    if ((!modifiedConfig.updateNotification && loginEvent) || !hasPermission("${FJETPACK_PERMISSION_PREFIX}update")) return
+    if ((!modifiedConfig.updateNotification && loginEvent) || (!hasPermission("${FJETPACK_PERMISSION_PREFIX}update") && !isAdminOrOp())) return
     withContext(IO) {
         safeRun(exceptionMessage = "Can't look for updates: {#em}") {
             URL("https://api.spigotmc.org/legacy/update.php?resource=100816").openStream()
@@ -335,9 +363,9 @@ fun Jetpack.toYaml(): String = safeRun(false) {
 /**
  * Convert player as PlayerFlying
  */
-fun Player.asPlayerFlying(): PlayerFlying = let {
-    dataPlayer[uniqueId] ?: PlayerFlying(this).run {
-        dataPlayer[uniqueId] = this
+fun Player.asFJRPlayer(): FJRPlayer = let {
+    dataFJRPlayer[uniqueId] ?: FJRPlayer(this).run {
+        dataFJRPlayer[uniqueId] = this
         this
     }
 }
@@ -351,12 +379,12 @@ fun Player.turnOff(jetpack: Jetpack? = null, noMessage: Boolean = false) {
         jetpack?.let {
             if (isDead)
                 when (it.onDied) {
-                    OnDeath.Nothing -> if (!(this as LivingEntity).isOnGround || isFlying)
+                    is OnDeath.Nothing -> if (!(this as LivingEntity).isOnGround || isFlying)
                         messages.detached
                     else
                         messages.turnOff
-                    OnDeath.Drop -> messages.onDeathDropped
-                    OnDeath.Remove -> messages.onDeathRemoved
+                    is OnDeath.Drop -> messages.onDeathDropped
+                    is OnDeath.Remove -> messages.onDeathRemoved
                 }.send(this)
             else
                 (if (!(this as LivingEntity).isOnGround || isFlying)
@@ -364,14 +392,8 @@ fun Player.turnOff(jetpack: Jetpack? = null, noMessage: Boolean = false) {
                 else
                     messages.turnOff).send(this)
         } ?: "&cThis plugin has been unloaded!".send(this)
-    asPlayerFlying().stop()
+    asFJRPlayer().stop()
 }
-
-/**
- * turn Off jetpack player
- * require run in Main Thread!
- */
-fun Player.turnOff() = turnOff(null)
 
 /**
  * set item metadata String
@@ -506,7 +528,7 @@ fun CommandSender.giveJetpack(p: Player, jetpack: Jetpack, fuelValue: Long) = wi
         p.inventory.addItem(item).run {
             if (isNotEmpty()) {
                 forEach { (_, i) ->
-                    p.main {
+                    p.mainThread {
                         world.dropItemNaturally(location, i)
                     }
                 }
@@ -574,13 +596,13 @@ fun CommandSender.giveCustomFuel(target: Player, customFuel: CustomFuel, amount:
         return
     }
 
-    item = item.set(ID_CUSTOM_FUEL, "@${customFuel.id}")
+    item = item.set(ID_CUSTOM_FUEL, CUSTOM_FUEL_PREFIX + customFuel.id)
     item.amount = amount
 
     target.inventory.addItem(item).run {
         if (isNotEmpty()) {
             forEach { (_, i) ->
-                target.main {
+                target.mainThread {
                     world.dropItemNaturally(location, i)
                 }
             }
@@ -600,3 +622,8 @@ fun CommandSender.giveCustomFuel(target: Player, customFuel: CustomFuel, amount:
  * Check is plugin enabled or not
  */
 fun Server.isPluginActive(plugin: String) = pluginManager.isPluginEnabled(plugin)
+
+/**
+ * Check sender is admin or op
+ */
+fun CommandSender.isAdminOrOp() = hasPermission("$FJETPACK_PERMISSION_PREFIX*") || isOp

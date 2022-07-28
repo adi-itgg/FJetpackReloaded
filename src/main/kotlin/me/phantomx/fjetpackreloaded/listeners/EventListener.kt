@@ -3,7 +3,6 @@ package me.phantomx.fjetpackreloaded.listeners
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI
 import kotlinx.coroutines.*
 import me.phantomx.fjetpackreloaded.const.GlobalConst.CUSTOM_FUEL_PREFIX
-import me.phantomx.fjetpackreloaded.const.GlobalConst.FJETPACK_PERMISSION_PREFIX
 import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_CUSTOM_FUEL
 import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_FUEL_JETPACK
 import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_JETPACK
@@ -12,11 +11,9 @@ import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.GriefPreventionName
 import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.fjetpackReloadedSS2Flag
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.fjetpackReloadedSS2Privilege
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
-import me.phantomx.fjetpackreloaded.modules.Module.listPlayerUse
+import me.phantomx.fjetpackreloaded.modules.Module.fjrPlayersActive
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.messages
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
@@ -64,24 +61,30 @@ class EventListener : Listener, CoroutineScope {
                         armor.itemMeta?.let { meta ->
                             if (isSneaking || !meta.hasLore() || !(this as LivingEntity).isOnGround) return@i
                             jetpacks[armor.get(ID_JETPACK)]?.let { jetpack ->
-                                if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.use")) {
+                                if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.use") && !isAdminOrOp()) {
                                     messages.noPerms.send(this)
                                     return@i
                                 }
 
                                 // force allow to disable jetpack
-                                if (allowFlight && listPlayerUse[asPlayerFlying()] != null) {
+                                if (allowFlight && fjrPlayersActive[asFJRPlayer()] != null) {
                                     turnOff(jetpack)
                                     return@i
                                 }
 
                                 // grief prevention
                                 if (server.isPluginActive(GriefPreventionName) &&
-                                    (jetpack.onlyAllowInsideOwnGriefPreventionClaim || jetpack.onlyAllowInsideAllGriefPreventionClaim)) {
-                                    asPlayerFlying().let { pf ->
-                                        GriefPrevention.instance.dataStore.getClaimAt(location, true, true, pf.griefClaim)?.let { claim ->
+                                    (jetpack.onlyAllowInsideOwnGriefPreventionClaim || jetpack.onlyAllowInsideAllGriefPreventionClaim)
+                                ) {
+                                    asFJRPlayer().let { pf ->
+                                        GriefPrevention.instance.dataStore.getClaimAt(
+                                            location,
+                                            true,
+                                            true,
+                                            pf.griefClaim
+                                        )?.let { claim ->
                                             if (jetpack.onlyAllowInsideOwnGriefPreventionClaim && !jetpack.onlyAllowInsideAllGriefPreventionClaim) {
-                                                if (claim.getOwnerID() != uniqueId && !isOp && !hasPermission("$FJETPACK_PERMISSION_PREFIX*")) {
+                                                if (claim.getOwnerID() != uniqueId && !isAdminOrOp()) {
                                                     messages.griefPreventionOutsideOwnClaim.send(this)
                                                     return
                                                 }
@@ -97,20 +100,12 @@ class EventListener : Listener, CoroutineScope {
                                 // check is SuperiorSkyblock2 available
                                 if (server.isPluginActive(SuperiorSkyblock2Name)) {
                                     SuperiorSkyblockAPI.getIslandAt(location)?.let {
-                                        if (!jetpack.bypassSuperiorSkyblock2Flag)
-                                            it.hasSettingsEnabled(fjetpackReloadedSS2Flag).let flag@ {
-                                                if (it) return@flag
-                                                messages.superiorSkyblock2NoFlag.send(this)
+                                        asFJRPlayer().apply {
+                                            if (checkJetpackHasPermission(jetpack, it, false) || isAdminOrOp())
+                                                ss2IslandUUID = it.uniqueId
+                                            else
                                                 return
-                                            }
-
-                                        if (!jetpack.bypassSuperiorSkyblock2Privilege)
-                                            if (!it.hasPermission(this, fjetpackReloadedSS2Privilege)) {
-                                                messages.superiorSkyblock2NoPermission.send(this)
-                                                return
-                                            }
-                                        // allowed
-                                        asPlayerFlying().ss2IslandUUID = it.uniqueId
+                                        }
                                     }
                                 }
 
@@ -128,7 +123,8 @@ class EventListener : Listener, CoroutineScope {
                                             val dFuel = jetpack.fuel.replace("_", " ")
                                             fuel = armor.get(ID_FUEL_JETPACK).toLongSafe()
                                             if (fuel < jetpack.fuelCost) {
-                                                messages.noFuel.replace(JETPACK_FUEL_MESSAGE_PLACEHOLDER, dFuel).send(this)
+                                                messages.noFuel.replace(JETPACK_FUEL_MESSAGE_PLACEHOLDER, dFuel)
+                                                    .send(this)
                                                 return@i
                                             }
                                         }
@@ -136,14 +132,16 @@ class EventListener : Listener, CoroutineScope {
                                         fuel = armor.get(ID_FUEL_JETPACK).toLongSafe()
                                         if (fuel < jetpack.fuelCost) {
                                             customFuel[jetpack.fuel.substring(1)]?.let {
-                                                messages.noFuel.replace(JETPACK_FUEL_MESSAGE_PLACEHOLDER, displayName).send(this)
+                                                messages.noFuel.replace(JETPACK_FUEL_MESSAGE_PLACEHOLDER, displayName)
+                                                    .send(this)
                                             } ?: "&cError invalid Custom Fuel".send(this)
                                             return@i
                                         }
                                     }
                                 } ?: return@i
 
-                                asPlayerFlying().apply playerFlying@{
+                                asFJRPlayer().apply playerFlying@{
+                                    this.jetpack.set(jetpack)
                                     allowFlight = true
                                     flySpeed = jetpack.speed.toFloat() / 10.0f
 
@@ -163,9 +161,9 @@ class EventListener : Listener, CoroutineScope {
                                                                 if (lArmor.type != Material.AIR)
                                                                     jetpacks[lArmor.get(ID_JETPACK)]?.let jetpack@{ lJetpack ->
                                                                         if (jetpack.id != lJetpack.id) return@jetpack
-                                                                        if (!hasPermission(lJetpack.permission) && !hasPermission(
-                                                                                "${lJetpack.permission}.use"
-                                                                            )
+                                                                        if (!hasPermission(lJetpack.permission) &&
+                                                                            !hasPermission("${lJetpack.permission}.use") &&
+                                                                            !isAdminOrOp()
                                                                         ) return@stopJob true
                                                                         if ((this@player as LivingEntity).isOnGround && !isFlying) return@stopJob false
                                                                         for (blocked in lJetpack.blockedWorlds) {
@@ -177,9 +175,9 @@ class EventListener : Listener, CoroutineScope {
                                                                         // check fuel
                                                                         fuel =
                                                                             lArmor.get(ID_FUEL_JETPACK).toLongSafe()
-                                                                        if (!lJetpack.canBypassFuel || !hasPermission(
-                                                                                "${lJetpack.permission}.bypass"
-                                                                            )
+                                                                        if (!lJetpack.canBypassFuel ||
+                                                                            (!hasPermission("${lJetpack.permission}.bypass") &&
+                                                                                    !isAdminOrOp())
                                                                         ) {
                                                                             if (fuel < lJetpack.fuelCost) {
                                                                                 messages.outOfFuel.send(this@player)
@@ -189,9 +187,10 @@ class EventListener : Listener, CoroutineScope {
                                                                             fuel -= lJetpack.fuelCost
                                                                         }
 
-                                                                        if ((!lJetpack.canBypassSprintFuel || !hasPermission(
-                                                                                "${lJetpack.permission}.sprintbypass"
-                                                                            )) && isSprinting
+                                                                        if ((!lJetpack.canBypassSprintFuel ||
+                                                                                    (!hasPermission("${lJetpack.permission}.sprintbypass") &&
+                                                                                            !isAdminOrOp())) &&
+                                                                            isSprinting
                                                                         ) {
                                                                             if (fuel < lJetpack.fuelCostFlySprint) {
                                                                                 messages.outOfFuel.send(this@player)
@@ -205,12 +204,11 @@ class EventListener : Listener, CoroutineScope {
                                                                         lArmor =
                                                                             lArmor.update(fuel.toString(), lJetpack)
                                                                         equipment?.apply {
-                                                                            val liveArmors =
-                                                                                armorContents.toMutableList()
+                                                                            val liveArmors = armorContents.toMutableList()
                                                                             if (liveArmors.isEmpty()) return@stopJob true
-                                                                            armorContents =
-                                                                                liveArmors.update(lArmor)
-                                                                                    .toTypedArray()
+                                                                            val newArmors = liveArmors.update(lArmor).toTypedArray()
+                                                                            yield()
+                                                                            armorContents = newArmors
                                                                             return@stopJob false
                                                                         } ?: return@stopJob true
                                                                     }
@@ -222,45 +220,21 @@ class EventListener : Listener, CoroutineScope {
                                                     if (!contains(player.location, true, false)) {
                                                         stop = true
                                                         messages.griefPreventionTurnedOffOutsideClaim.send(player)
-                                                        turnOff(noMessage = true)
-                                                        return@launch
-                                                    }
-                                                }
-                                                ss2IslandUUID?.withSafe {
-                                                    SuperiorSkyblockAPI.getIslandAt(player.location)?.let {
-                                                        if (it.uniqueId != this) {
-                                                            // check new island is allowed or not
-                                                            // for flag
-                                                            if (!jetpack.bypassSuperiorSkyblock2Flag)
-                                                                it.hasSettingsEnabled(fjetpackReloadedSS2Flag).let flag@ {
-                                                                    if (it) return@flag
-                                                                    messages.superiorSkyblock2NoFlag.send(player)
-                                                                    turnOff(noMessage = true)
-                                                                    return@launch
-                                                                }
-
-                                                            // for permissions
-                                                            if (!jetpack.bypassSuperiorSkyblock2Privilege)
-                                                                if (!it.hasPermission(player, fjetpackReloadedSS2Privilege)) {
-                                                                    messages.superiorSkyblock2NoPermission.send(player)
-                                                                    turnOff(noMessage = true)
-                                                                    return@launch
-                                                                }
+                                                        mainThread {
+                                                            turnOff(noMessage = true)
                                                         }
-                                                        Unit
-                                                    } ?: run {
-                                                        stop = true
-                                                        messages.superiorSkyblock2OutsideIsland.send(player)
-                                                        turnOff(noMessage = true)
                                                         return@launch
                                                     }
                                                 }
+                                                checkSuperiorSkyblock2EventsChanged(false)
                                                 if (stop)
                                                     break
                                                 delay(jetpack.burnRate.toLong() * 1000L)
                                             }
                                         } ?: return@launch
-                                        turnOff(jetpack)
+                                        mainThread {
+                                            turnOff(jetpack)
+                                        }
                                     }
 
                                     if (jetpack.particleEffect.lowercase() != "none")
@@ -274,7 +248,7 @@ class EventListener : Listener, CoroutineScope {
                                                 withSafe {
                                                     while (true) {
                                                         yield()
-                                                        if (!(player as LivingEntity).isOnGround && isFlying && allowFlight && isOnline && listPlayerUse[this@playerFlying] != null)
+                                                        if (!(player as LivingEntity).isOnGround && isFlying && allowFlight && isOnline && fjrPlayersActive[this@playerFlying] != null)
                                                             world.withSafe {
                                                                 if (serverVersion > 8) {
                                                                     val newZ = (0.1 * sin(
@@ -282,7 +256,7 @@ class EventListener : Listener, CoroutineScope {
                                                                             (location.yaw + 270.0f).toDouble()
                                                                         )
                                                                     )).toFloat()
-                                                                    jetpack.main {
+                                                                    jetpack.mainThread {
                                                                         spawnParticle(
                                                                             Particle.valueOf(
                                                                                 particleEffect.uppercase().trim()
@@ -313,7 +287,7 @@ class EventListener : Listener, CoroutineScope {
                                             }
                                         } ?: "&cInvalid Particle Effect!".send(this@player)
 
-                                    listPlayerUse[this] = jetpack
+                                    fjrPlayersActive[this] = jetpack
                                     messages.turnOn.send(this@player)
                                     return
                                 }
@@ -334,7 +308,7 @@ class EventListener : Listener, CoroutineScope {
 
     @EventHandler
     fun onPlayerDisconnected(e: PlayerQuitEvent) {
-        e.player.asPlayerFlying().stop()
+        e.player.asFJRPlayer().stop()
     }
 
     @Suppress("Deprecation")
@@ -355,11 +329,14 @@ class EventListener : Listener, CoroutineScope {
                             isUnbreakable = it.unbreakable
                         }
                     } else if (it.unbreakable) durability = 0.toShort()
-                    eq.armorContents = eq.armorContents.toMutableList().update(this).toTypedArray()
+                    val upArmors = armors.toMutableList().update(this).toTypedArray()
+                    if (eq.armorContents.size == upArmors.size)
+                        eq.armorContents = upArmors
                 }
             }
         }
     }
+
 
     @EventHandler
     fun onPlayerDied(e: EntityDeathEvent) = e.withSafe {
@@ -367,14 +344,14 @@ class EventListener : Listener, CoroutineScope {
         if (entity.type != EntityType.PLAYER) return
         val p: Player = entity as Player
 
-        p.asPlayerFlying().apply {
-            listPlayerUse[this]?.let {
+        p.asFJRPlayer().apply {
+            fjrPlayersActive[this]?.let {
                 stop()
                 messages.turnOff.send(p)
             }
         }
         for (jp in jetpacks.values) {
-            if (jp.onDied == OnDeath.Nothing && jp.onNoFuel == OnEmptyFuel.Nothing) continue
+            if (jp.onDied is OnDeath.Nothing && jp.onNoFuel is OnEmptyFuel.Nothing) continue
             p.inventory.let { inventory ->
                 val armors = inventory.armorContents.toMutableList()
                 armors.iterator().let {
@@ -382,46 +359,49 @@ class EventListener : Listener, CoroutineScope {
                         it.next()?.apply item@{
                             val id = get(ID_JETPACK)
                             if (id.isNotEmpty() && id == jp.id) {
-
                                 when (jp.onDied) {
-                                    OnDeath.Drop -> {
-                                        p.equipment?.armorContents?.let { eqarmor ->
-                                            var dropped = false
-                                            val eqArmors = eqarmor.toMutableList()
-                                            eqArmors.iterator().apply {
-                                                while (hasNext())
-                                                    next()?.let { item ->
-                                                        if (item.get(ID_JETPACK) == get(ID_JETPACK)) {
-                                                            dropped = true
-                                                            val dropItem = item.clone()
-                                                            main {
-                                                                p.world.dropItemNaturally(p.location, dropItem)
-                                                            }
-                                                            eqArmors.remove(item)
-                                                        }
-                                                    }
-                                            }
-                                            if (!dropped) {
-                                                val dropItem = clone()
-                                                main {
-                                                    p.world.dropItemNaturally(p.location, dropItem)
-                                                }
-                                            }
-                                            p.equipment?.armorContents = eqArmors.toTypedArray()
+                                    is OnDeath.Drop -> {
+                                        // only drop current active jetpack item
+
+                                        // check item is already dropped or not
+                                        e.drops.forEach {
+                                            if (it != this) return@forEach
+                                            return@item
                                         }
+
+                                        val equippedArmors = p.equipment?.armorContents?.toMutableList() ?: return@item
+
+                                        var dropped = false
+                                        equippedArmors.iterator().apply {
+                                            while (hasNext())
+                                                next()?.let { item ->
+                                                    if (item.get(ID_JETPACK) == get(ID_JETPACK)) {
+                                                        dropped = true
+
+                                                        val dropItem = item.clone()
+                                                        p.world.dropItemNaturally(p.location, dropItem)
+
+                                                        remove()
+                                                    }
+                                                }
+                                        }
+                                        if (!dropped) {
+                                            val dropItem = clone()
+                                            p.world.dropItemNaturally(p.location, dropItem)
+                                        }
+                                        val upArmors = equippedArmors.toTypedArray()
+                                        p.equipment?.armorContents = upArmors
                                         messages.onDeathDropped.send(p)
                                     }
-                                    OnDeath.Nothing -> {
-
-                                    }
-                                    OnDeath.Remove -> {
+                                    is OnDeath.Nothing -> {}
+                                    is OnDeath.Remove -> {
+                                        e.drops.remove(this@item)
                                         p.inventory.remove(this@item)
                                         p.updateInventory()
                                         messages.onDeathRemoved.send(p)
                                     }
                                 }
-
-                                armors.remove(this)
+                                it.remove()
                             }
                         }
                 }
@@ -442,7 +422,7 @@ class EventListener : Listener, CoroutineScope {
                     jetpacks[slotItem.get(ID_JETPACK)]?.let { jetpack ->
 
                         if (slotType == InventoryType.SlotType.ARMOR)
-                            listPlayerUse[asPlayerFlying()]?.let {
+                            fjrPlayersActive[asFJRPlayer()]?.let {
                                 if (jetpack.id == it.id)
                                     turnOff(it)
                                 else
@@ -453,7 +433,7 @@ class EventListener : Listener, CoroutineScope {
                         if (jetpack.fuel.startsWith(CUSTOM_FUEL_PREFIX)) {
                             val key = cursorItem.get(ID_CUSTOM_FUEL).replace(CUSTOM_FUEL_PREFIX, STRING_EMPTY)
                             customFuel[key]?.apply {
-                                if (!hasPermission(permission)) {
+                                if (!hasPermission(permission) && !isAdminOrOp()) {
                                     messages.noPerms.send(this@player)
                                     return
                                 }
@@ -461,7 +441,7 @@ class EventListener : Listener, CoroutineScope {
                         } else if (cursorItem.type != Material.valueOf(jetpack.fuel.uppercase().trim()))
                             return
 
-                        if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.refuel")) {
+                        if (!hasPermission(jetpack.permission) && !hasPermission("${jetpack.permission}.refuel") && !isAdminOrOp()) {
                             messages.noPerms.send(this)
                             return
                         }
