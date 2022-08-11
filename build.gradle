@@ -1,15 +1,15 @@
 plugins {
     id 'idea'
-    id 'org.jetbrains.kotlin.jvm' version '1.6.21'
-    id 'org.jetbrains.kotlin.kapt' version '1.5.31'
+    id 'org.jetbrains.kotlin.jvm' version '1.7.10'
+    id 'org.jetbrains.kotlin.kapt' version '1.7.10'
     id 'java'
-    id 'kr.entree.spigradle' version '2.3.4'
+    id 'kr.entree.spigradle' version '2.4.2'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'org.jetbrains.kotlin.plugin.serialization' version '1.4.20'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.7.10'
 }
 
 group 'me.phantomx.fjetpackreloaded'
-version '1.3'
+version '1.5-pre2'
 
 java {
     targetCompatibility = "1.8"
@@ -34,6 +34,9 @@ repositories {
     maven { url 'https://repo.bg-software.com/repository/api/' }
 }
 
+
+
+
 def urlFile = { url, name ->
     File file = new File("$buildDir/download/${name}.jar")
     file.parentFile.mkdirs()
@@ -49,21 +52,25 @@ def urlFile = { url, name ->
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0"
-    implementation "org.jetbrains.kotlin:kotlin-reflect:1.6.21"
+
+    // conflict with eco
+    //implementation "org.jetbrains.kotlin:kotlin-reflect:1.7.10"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
 
     implementation 'com.google.code.gson:gson:2.9.0'
     implementation 'org.json:json:20211205'
-    implementation 'org.bstats:bstats-bukkit:3.0.0'
 
     //implementation "com.charleskorn.kaml:kaml:0.43.0"
-    implementation "net.mamoe.yamlkt:yamlkt:0.11.0"
+    implementation "net.mamoe.yamlkt:yamlkt:0.12.0"
+    implementation 'org.bstats:bstats-bukkit:3.0.0'
+    // comp
 
     compileOnly 'com.github.TechFortress:GriefPrevention:16.18'
-    compileOnly 'com.bgsoftware:SuperiorSkyblockAPI:1.10.0'
+    compileOnly 'com.bgsoftware:SuperiorSkyblockAPI:1.11.0'
 
     // Pick only one of these and read the comment in the repositories block.
-    compileOnly 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
+    compileOnly 'org.spigotmc:spigot-api:1.19-R0.1-SNAPSHOT' // The Spigot API with no shadowing. Requires the OSS repo.
     //compileOnly 'org.spigotmc:spigot:1.18.2-R0.1-SNAPSHOT' // The full Spigot server with no shadowing. Requires mavenLocal.
     //compileOnly spigot('1.18.1')
 
@@ -83,6 +90,12 @@ test {
 
 shadowJar {
     relocate("org.bstats", "me.phantomx.fjetpackreloaded")
+    relocate("kotlin", "me.phantomx.fjetpackreloaded.kotlin") {
+        //exclude "kotlin/reflect/**"
+    }
+    relocate("kotlinx", "me.phantomx.fjetpackreloaded.kotlinx")
+    relocate("com.google.gson", "me.phantomx.fjetpackreloaded.gson")
+    relocate("net.mamoe.yamlkt", "me.phantomx.fjetpackreloaded.yamlkt")
 }
 
 spigot {
@@ -90,10 +103,11 @@ spigot {
     description = 'Lightweight, Fuel System and Customizable a Jetpack Plugin'
     authors = ['PhantomX']
     depends = []
-    softDepends = ['GriefPrevention', 'SuperiorSkyblock2']
-    libraries = ['org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0']
+    loadBefore = ['SuperiorSkyblock2']
+    softDepends = ['GriefPrevention']
     apiVersion = '1.13'
-    load = POSTWORLD //STARTUP
+    //load = POSTWORLD //STARTUP
+    libraries = ['org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4']
     commands {
         fjetpackreloaded {
             aliases = ['fjr']

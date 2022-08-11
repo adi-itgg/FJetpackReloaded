@@ -2,29 +2,30 @@ package me.phantomx.fjetpackreloaded.extensions
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import me.phantomx.fjetpackreloaded.annotations.Pure
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CUSTOM_FUEL_PREFIX
+import me.phantomx.fjetpackreloaded.const.GlobalConst.FJETPACK_PERMISSION_PREFIX
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_CUSTOM_FUEL
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_FUEL_JETPACK
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_JETPACK
+import me.phantomx.fjetpackreloaded.const.GlobalConst.JETPACK_FUEL_PLACEHOLDER
+import me.phantomx.fjetpackreloaded.const.GlobalConst.JETPACK_FUEL_VALUE_PLACEHOLDER
+import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.data.CustomFuel
 import me.phantomx.fjetpackreloaded.data.Jetpack
 import me.phantomx.fjetpackreloaded.data.Messages
-import me.phantomx.fjetpackreloaded.data.PlayerFlying
+import me.phantomx.fjetpackreloaded.data.FJRPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
-import me.phantomx.fjetpackreloaded.modules.Module.dataPlayer
-import me.phantomx.fjetpackreloaded.modules.Module.fuelIdJetpack
+import me.phantomx.fjetpackreloaded.modules.Module.dataFJRPlayer
 import me.phantomx.fjetpackreloaded.modules.Module.gson
-import me.phantomx.fjetpackreloaded.modules.Module.idCustomFuel
-import me.phantomx.fjetpackreloaded.modules.Module.idJetpack
-import me.phantomx.fjetpackreloaded.modules.Module.jetpackFuelPlaceholder
-import me.phantomx.fjetpackreloaded.modules.Module.jetpackFuelValuePlaceholder
 import me.phantomx.fjetpackreloaded.modules.Module.mainContext
 import me.phantomx.fjetpackreloaded.modules.Module.messages
 import me.phantomx.fjetpackreloaded.modules.Module.metaData
 import me.phantomx.fjetpackreloaded.modules.Module.modifiedConfig
-import me.phantomx.fjetpackreloaded.modules.Module.permission
 import me.phantomx.fjetpackreloaded.modules.Module.plugin
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
-import me.phantomx.fjetpackreloaded.modules.Module.stringEmpty
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
 import net.mamoe.yamlkt.Yaml
 import org.bukkit.*
@@ -36,18 +37,19 @@ import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.LeatherArmorMeta
 import org.bukkit.plugin.Plugin
+import org.bukkit.scheduler.BukkitRunnable
 import java.io.File
 import java.net.URL
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.full.memberProperties
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Run safe [block] and cancallable block coroutines
  * @param exceptionMessage {#et} for stack trace, {#em} for exception message
  */
-inline fun <T> T.withSafe(noLogs: Boolean = true, exceptionMessage: String = stringEmpty, block: T.() -> Unit) =
+inline fun <T> T.withSafe(noLogs: Boolean = true, exceptionMessage: String = STRING_EMPTY, block: T.() -> Unit) =
     safeRun(noLogs, exceptionMessage) {
         block()
     } ?: Unit
@@ -57,7 +59,7 @@ inline fun <T> T.withSafe(noLogs: Boolean = true, exceptionMessage: String = str
  * @param exceptionMessage {#et} for stack trace, {#em} for exception message
  * @return null if fail, [R] otherwise
  */
-inline fun <T, R> T.safeRun(noLogs: Boolean = true, exceptionMessage: String = stringEmpty, block: T.() -> R): R? =
+inline fun <T, R> T.safeRun(noLogs: Boolean = true, exceptionMessage: String = STRING_EMPTY, block: T.() -> R): R? =
     try {
         block()
     } catch (e: Exception) {
@@ -66,7 +68,7 @@ inline fun <T, R> T.safeRun(noLogs: Boolean = true, exceptionMessage: String = s
             Bukkit.getServer().logger.warning(
                 exceptionMessage
                     .replace("{#et}", e.stackTraceToString())
-                    .replace("{#em}", e.message ?: stringEmpty)
+                    .replace("{#em}", e.message ?: STRING_EMPTY)
             )
         if (!noLogs)
             Bukkit.getServer().logger.warning(e.stackTraceToString())
@@ -77,14 +79,14 @@ inline fun <T, R> T.safeRun(noLogs: Boolean = true, exceptionMessage: String = s
  * @return if failed to parse will return default value or 0
  */
 fun String?.toIntSafe(defaultValue: Int = 0): Int = safeRun {
-    this?.replace("\\D+".toRegex(), stringEmpty)?.toInt() ?: defaultValue
+    this?.replace("\\D+".toRegex(), STRING_EMPTY)?.toInt() ?: defaultValue
 } ?: defaultValue
 
 /**
  * @return if failed to parse will return zero
  */
 fun String?.toLongSafe(): Long = safeRun {
-    this?.replace("\\D+".toRegex(), stringEmpty)?.toLong() ?: 0
+    this?.replace("\\D+".toRegex(), STRING_EMPTY)?.toLong() ?: 0
 } ?: 0
 
 /**
@@ -94,12 +96,13 @@ fun String.translateCodes(): String = ChatColor.translateAlternateColorCodes('&'
 
 /**
  * send message to target console/player with translated color codes
+ * default [target] is console
  */
-fun String.send(target: CommandSender, noPrefix: Boolean = false) {
+fun String.send(target: CommandSender = Bukkit.getServer().consoleSender, noPrefix: Boolean = false) {
     if (length < 1) return
     target.sendMessage(
         (when (noPrefix) {
-            true -> stringEmpty
+            true -> STRING_EMPTY
             false -> messages.prefix + " "
         } + this).translateAllCodes()
     )
@@ -116,13 +119,37 @@ fun String.translateAllCodes() = translateHex().translateCodes()
 suspend fun String.sendDefault(target: CommandSender) = withContext(mainContext) { this@sendDefault.send(target) }
 
 /**
- * run on main Thread
+ * run on Main thread without blocking current thread
  */
-inline fun <T> T.main(crossinline block: T.(T) -> Unit): T {
-    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin) {
-        block(this)
-    }
+inline fun <T> T.mainThread(crossinline block: T.() -> Unit): T {
+    object : BukkitRunnable() {
+        override fun run() {
+            block()
+        }
+    }.runTask(plugin)
     return this
+}
+
+/**
+ * run sync [block] on main Thread
+ */
+suspend inline fun <T, R> T.withContextMain(crossinline block: T.() -> R): R {
+    return suspendCancellableCoroutine {
+        val task = object : BukkitRunnable() {
+            override fun run() {
+                try {
+                    val r = block()
+                    if (it.isCancelled) return
+                    it.resume(r)
+                } catch (e: CancellationException) {
+                    it.resumeWithException(e)
+                }
+            }
+        }.runTask(plugin)
+        it.invokeOnCancellation {
+            task.cancel()
+        }
+    }
 }
 
 /**
@@ -152,7 +179,7 @@ fun String.translateHex(): String = safeRun {
  */
 @Suppress("BlockingMethodInNonBlockingContext")
 suspend fun CommandSender.checkUpdatePlugin(loginEvent: Boolean) {
-    if ((!modifiedConfig.updateNotification && loginEvent) || !hasPermission("${permission}update")) return
+    if ((!modifiedConfig.updateNotification && loginEvent) || (!hasPermission("${FJETPACK_PERMISSION_PREFIX}update") && !isAdminOrOp())) return
     withContext(IO) {
         safeRun(exceptionMessage = "Can't look for updates: {#em}") {
             URL("https://api.spigotmc.org/legacy/update.php?resource=100816").openStream()
@@ -233,7 +260,7 @@ fun Plugin.saveDefaultJetpacksConfig() {
             ),
             jetpackItem = "CHAINMAIL_CHESTPLATE",
             unbreakable = true,
-            fuel = "@CVIP",
+            fuel = "${CUSTOM_FUEL_PREFIX}CVIP",
             fuelCostFlySprint = 0,
             burnRate = 5,
             speed = "1.1",
@@ -286,36 +313,9 @@ fun Plugin.saveDefaultMessagesConfig() {
 }
 
 /**
- * safe string like color codes in yaml
- */
-fun <T : Any> T.safeStringsClassYaml(): T {
-    val whiteAnno = Pure()
-    this::class.memberProperties.forEach {
-        if ((it.returnType.classifier != String::class && it.returnType.classifier != List::class) ||
-            it.annotations.contains(whiteAnno) ||
-            it !is KMutableProperty<*>
-        ) return@forEach
-        if (it.returnType.classifier == String::class) {
-            val value = it.getter.call(this) as String
-            it.setter.call(this, value.safeFieldStringYaml())
-        } else {
-            val originValue = it.getter.call(this)
-            val value = originValue as List<*>
-            val listString = value.filterIsInstance<String>().takeIf { it.size == value.size } ?: return@forEach
-            val nl: MutableList<String> = ArrayList()
-            listString.iterator().forEach { str ->
-                nl.add(str.safeFieldStringYaml())
-            }
-            it.setter.call(this, nl)
-        }
-    }
-    return this
-}
-
-/**
  * don't forget call this function after object converted to yaml
  */
-fun String.escapeSafeStringYaml(): String = replace("{~\$~}", stringEmpty)
+fun String.escapeSafeStringYaml(): String = replace("{~\$~}", STRING_EMPTY)
 
 /**
  * check is string safe to convert as yaml string
@@ -343,7 +343,7 @@ fun CustomFuel.toYaml(): String = safeRun(false) {
         yaml.append(indent).append(it).append("\n")
     }
     yaml.toString()
-} ?: stringEmpty
+} ?: STRING_EMPTY
 
 /**
  * Convert jetpack object to yaml config
@@ -358,14 +358,14 @@ fun Jetpack.toYaml(): String = safeRun(false) {
         yaml.append(indent).append(it).append("\n")
     }
     yaml.toString()
-} ?: stringEmpty
+} ?: STRING_EMPTY
 
 /**
  * Convert player as PlayerFlying
  */
-fun Player.asPlayerFlying(): PlayerFlying = let {
-    dataPlayer[uniqueId] ?: PlayerFlying(this).run {
-        dataPlayer[uniqueId] = this
+fun Player.asFJRPlayer(): FJRPlayer = let {
+    dataFJRPlayer[uniqueId] ?: FJRPlayer(this).run {
+        dataFJRPlayer[uniqueId] = this
         this
     }
 }
@@ -379,12 +379,12 @@ fun Player.turnOff(jetpack: Jetpack? = null, noMessage: Boolean = false) {
         jetpack?.let {
             if (isDead)
                 when (it.onDied) {
-                    OnDeath.Nothing -> if (!(this as LivingEntity).isOnGround || isFlying)
+                    is OnDeath.Nothing -> if (!(this as LivingEntity).isOnGround || isFlying)
                         messages.detached
                     else
                         messages.turnOff
-                    OnDeath.Drop -> messages.onDeathDropped
-                    OnDeath.Remove -> messages.onDeathRemoved
+                    is OnDeath.Drop -> messages.onDeathDropped
+                    is OnDeath.Remove -> messages.onDeathRemoved
                 }.send(this)
             else
                 (if (!(this as LivingEntity).isOnGround || isFlying)
@@ -392,14 +392,8 @@ fun Player.turnOff(jetpack: Jetpack? = null, noMessage: Boolean = false) {
                 else
                     messages.turnOff).send(this)
         } ?: "&cThis plugin has been unloaded!".send(this)
-    asPlayerFlying().stop()
+    asFJRPlayer().stop()
 }
-
-/**
- * turn Off jetpack player
- * require run in Main Thread!
- */
-fun Player.turnOff() = turnOff(null)
 
 /**
  * set item metadata String
@@ -422,7 +416,7 @@ fun ItemStack.isNotTypeArmor(): Boolean = metaData.isNotItemArmor(this)
  */
 fun ItemStack.update(fuel: String, jetpack: Jetpack): ItemStack {
     var fuelItem = jetpack.fuel
-    if (fuelItem.startsWith("@")) {
+    if (fuelItem.startsWith(CUSTOM_FUEL_PREFIX)) {
         fuelItem = fuelItem.substring(1)
         customFuel[fuelItem]?.apply {
             fuelItem = customDisplay.ifEmpty { displayName }.translateAllCodes()
@@ -433,12 +427,12 @@ fun ItemStack.update(fuel: String, jetpack: Jetpack): ItemStack {
     itemMeta = itemMeta?.apply {
         lore = jetpack.lore.toMutableList().apply {
             replaceAll {
-                it.replace(jetpackFuelPlaceholder, fuelItem).replace(jetpackFuelValuePlaceholder, fuel)
+                it.replace(JETPACK_FUEL_PLACEHOLDER, fuelItem).replace(JETPACK_FUEL_VALUE_PLACEHOLDER, fuel)
                     .translateAllCodes()
             }
         }
     }
-    return set(fuelIdJetpack, fuel)
+    return set(ID_FUEL_JETPACK, fuel)
 }
 
 /**
@@ -451,7 +445,7 @@ fun MutableList<ItemStack>.update(jetpackItem: ItemStack): MutableList<ItemStack
     while (it.hasNext() && !done) {
         index++
         it.next().withSafe {
-            if (get(idJetpack) != jetpackItem.get(idJetpack) || type != jetpackItem.type)
+            if (get(ID_JETPACK) != jetpackItem.get(ID_JETPACK) || type != jetpackItem.type)
                 return@withSafe
             this@update[index] = jetpackItem
             done = true
@@ -466,7 +460,7 @@ fun MutableList<ItemStack>.update(jetpackItem: ItemStack): MutableList<ItemStack
 @Suppress("Deprecation")
 fun CommandSender.setJetpack(item: ItemStack, jetpack: Jetpack, fuelValue: Long): ItemStack {
     var fuel = jetpack.fuel
-    if (fuel.startsWith("@")) {
+    if (fuel.startsWith(CUSTOM_FUEL_PREFIX)) {
         customFuel[fuel.substring(1)]?.apply {
             fuel = customDisplay.ifEmpty { displayName }
         } ?: run {
@@ -480,7 +474,7 @@ fun CommandSender.setJetpack(item: ItemStack, jetpack: Jetpack, fuelValue: Long)
             setDisplayName(jetpack.displayName.translateAllCodes())
             lore = jetpack.lore.toMutableList().apply {
                 replaceAll {
-                    it.replace(jetpackFuelPlaceholder, fuel).replace(jetpackFuelValuePlaceholder, fuelValue.toString())
+                    it.replace(JETPACK_FUEL_PLACEHOLDER, fuel).replace(JETPACK_FUEL_VALUE_PLACEHOLDER, fuelValue.toString())
                         .translateAllCodes()
                 }
             }
@@ -496,7 +490,7 @@ fun CommandSender.setJetpack(item: ItemStack, jetpack: Jetpack, fuelValue: Long)
             "&cInvalid Item!".send(this@setJetpack)
             null
         }
-        set(idJetpack, jetpack.id).set(fuelIdJetpack, fuelValue.toString())
+        set(ID_JETPACK, jetpack.id).set(ID_FUEL_JETPACK, fuelValue.toString())
     }
 
     if (jetpack.enchantments.isNotEmpty())
@@ -534,7 +528,7 @@ fun CommandSender.giveJetpack(p: Player, jetpack: Jetpack, fuelValue: Long) = wi
         p.inventory.addItem(item).run {
             if (isNotEmpty()) {
                 forEach { (_, i) ->
-                    p.main {
+                    p.mainThread {
                         world.dropItemNaturally(location, i)
                     }
                 }
@@ -602,13 +596,13 @@ fun CommandSender.giveCustomFuel(target: Player, customFuel: CustomFuel, amount:
         return
     }
 
-    item = item.set(idCustomFuel, "@${customFuel.id}")
+    item = item.set(ID_CUSTOM_FUEL, CUSTOM_FUEL_PREFIX + customFuel.id)
     item.amount = amount
 
     target.inventory.addItem(item).run {
         if (isNotEmpty()) {
             forEach { (_, i) ->
-                target.main {
+                target.mainThread {
                     world.dropItemNaturally(location, i)
                 }
             }
@@ -628,3 +622,8 @@ fun CommandSender.giveCustomFuel(target: Player, customFuel: CustomFuel, amount:
  * Check is plugin enabled or not
  */
 fun Server.isPluginActive(plugin: String) = pluginManager.isPluginEnabled(plugin)
+
+/**
+ * Check sender is admin or op
+ */
+fun CommandSender.isAdminOrOp() = hasPermission("$FJETPACK_PERMISSION_PREFIX*") || isOp

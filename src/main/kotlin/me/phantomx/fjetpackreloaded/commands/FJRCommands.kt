@@ -2,14 +2,14 @@ package me.phantomx.fjetpackreloaded.commands
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import me.phantomx.fjetpackreloaded.const.GlobalConst.FJETPACK_PERMISSION_PREFIX
+import me.phantomx.fjetpackreloaded.const.GlobalConst.ID_JETPACK
 import me.phantomx.fjetpackreloaded.data.Jetpack
 import me.phantomx.fjetpackreloaded.extensions.*
 import me.phantomx.fjetpackreloaded.modules.Module.customFuel
-import me.phantomx.fjetpackreloaded.modules.Module.idJetpack
 import me.phantomx.fjetpackreloaded.modules.Module.jetpacks
 import me.phantomx.fjetpackreloaded.modules.Module.load
 import me.phantomx.fjetpackreloaded.modules.Module.messages
-import me.phantomx.fjetpackreloaded.modules.Module.permission
 import me.phantomx.fjetpackreloaded.modules.Module.plugin
 import me.phantomx.fjetpackreloaded.modules.Module.serverVersion
 import org.bukkit.Bukkit
@@ -43,7 +43,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         args: Array<out String>
     ): Boolean = sender.safeRun {
         if (super.onCommand(sender, command, label, args)) return true
-        if (!label.equals(idJetpack, ignoreCase = true) && label.lowercase() != "fjr") return false
+        if (!label.equals(ID_JETPACK, ignoreCase = true) && label.lowercase() != "fjr") return false
 
         var notContainsCmd = true
         if (args.isNotEmpty())
@@ -54,7 +54,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
             }
 
         if (args.isEmpty() || args[0].equals("help", ignoreCase = true) || notContainsCmd) {
-            if (hasPermission("${permission}help")) {
+            if (hasPermission("${FJETPACK_PERMISSION_PREFIX}help") || isAdminOrOp()) {
                 val stream = getResource("default/help.txt") ?: return true
                 stream.use {
                     Scanner(it).use { s ->
@@ -68,7 +68,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[1], ignoreCase = true)) {
-            if (hasPermission(permission + commandList[1]))
+            if (hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[1]) || isAdminOrOp())
                 launch {
                     if (plugin.load(sender = sender))
                         "&aReload Config Success!".send(target = sender)
@@ -79,7 +79,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[7], ignoreCase = true)) {
-            if (hasPermission(permission + commandList[7]))
+            if (hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[7]) || isAdminOrOp())
                 launch {
                     checkUpdatePlugin(loginEvent = false)
                 }
@@ -89,7 +89,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[2], ignoreCase = true)) {
-            if (!hasPermission(permission + commandList[2])) {
+            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[2]) && !isAdminOrOp()) {
                 messages.noPerms.send(this)
                 return true
             }
@@ -128,8 +128,9 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         if (args[0].equals(commandList[3], ignoreCase = true) ||
             args[0].equals(commandList[4], ignoreCase = true)
         ) {
-            if (!hasPermission(permission + commandList[3]) &&
-                !hasPermission(permission + commandList[4])
+            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[3]) &&
+                !hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[4]) &&
+                !isAdminOrOp()
             ) {
                 messages.noPerms.send(this)
                 return true
@@ -159,7 +160,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         }
 
         if (args[0].equals(commandList[8], ignoreCase = true)) {
-            if (!hasPermission(permission + commandList[8])) {
+            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[8]) && !isAdminOrOp()) {
                 messages.noPerms.send(this)
                 return true
             }
@@ -174,7 +175,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
             getItemInHandByCheckingServerVersion()?.let {
                 var item = it
                 val fuel = args[1].toLongSafe()
-                return jetpacks[item.get(idJetpack)]?.let { jp ->
+                return jetpacks[item.get(ID_JETPACK)]?.let { jp ->
                     item = setJetpack(item, jp, fuel)
                     if (serverVersion > 11)
                         inventory.setItemInMainHand(item)
@@ -195,7 +196,10 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
                 ignoreCase = true
             )
         ) {
-            if (!hasPermission(permission + commandList[5]) && !hasPermission(permission + commandList[6])) {
+            if (!hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[5]) &&
+                !hasPermission(FJETPACK_PERMISSION_PREFIX + commandList[6]) &&
+                !isAdminOrOp()
+            ) {
                 messages.noPerms.send(this)
                 return true
             }
@@ -230,7 +234,7 @@ abstract class FJRCommands : JavaPlugin(), CoroutineScope, TabCompleter {
         alias: String,
         args: Array<out String>
     ): MutableList<String> = sender.run {
-        if (!hasPermission("$permission*") && !hasPermission(permission + args[0]))
+        if (!isAdminOrOp() && !hasPermission(FJETPACK_PERMISSION_PREFIX + args[0]))
             return mutableListOf()
 
         var completions: MutableList<String> = ArrayList()

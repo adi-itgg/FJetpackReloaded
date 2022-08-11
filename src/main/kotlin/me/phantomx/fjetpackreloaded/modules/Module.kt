@@ -3,17 +3,15 @@ package me.phantomx.fjetpackreloaded.modules
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import me.phantomx.fjetpackreloaded.FJetpackReloaded
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CONFIG_CUSTOM_FUELS_LOCATION
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CONFIG_JETPACKS_LOCATION
+import me.phantomx.fjetpackreloaded.const.GlobalConst.CONFIG_MESSAGES_LOCATION
+import me.phantomx.fjetpackreloaded.const.GlobalConst.STRING_EMPTY
 import me.phantomx.fjetpackreloaded.data.Config
 import me.phantomx.fjetpackreloaded.data.CustomFuel
 import me.phantomx.fjetpackreloaded.data.Jetpack
 import me.phantomx.fjetpackreloaded.data.Messages
-import me.phantomx.fjetpackreloaded.data.hook.SuperiorSkyblock2Config
-import me.phantomx.fjetpackreloaded.data.hook.SuperiorSkyblock2Player
 import me.phantomx.fjetpackreloaded.extensions.*
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2ConfigFile
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.SuperiorSkyblock2Name
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorPlayersData
-import me.phantomx.fjetpackreloaded.fields.HookPlugin.superiorSkyblock2ConfigLoaded
 import me.phantomx.fjetpackreloaded.fields.Plugin
 import me.phantomx.fjetpackreloaded.nms.ItemMetaData
 import me.phantomx.fjetpackreloaded.sealeds.OnDeath
@@ -25,8 +23,6 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.json.JSONArray
 import java.io.File
 import java.util.*
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.full.memberProperties
 
 
 object Module : Plugin() {
@@ -92,41 +88,6 @@ object Module : Plugin() {
             "&cLoad configs failed!".send(this)
             false
         }
-        if (server.isPluginActive(SuperiorSkyblock2Name))
-            getDatabase(SuperiorSkyblock2Name).let {
-                sender.safeRun(false) {
-                    var ss2Config = SuperiorSkyblock2ConfigFile
-                    if (!modifiedConfig.configsYaml) ss2Config = ss2Config.replace(".yml", ".json")
-                    File(dataFolder, ss2Config).apply {
-                        if (!exists() || length() < 1) {
-                            withSafe {
-                                parentFile.mkdirs()
-                                parentFile.mkdir()
-                            }
-                            writeText(
-                                if (modifiedConfig.configsYaml)
-                                    Yaml.encodeToString(SuperiorSkyblock2Config.serializer(), SuperiorSkyblock2Config())
-                                else
-                                    gson.toJson(SuperiorSkyblock2Config())
-                            )
-                        }
-                        superiorSkyblock2ConfigLoaded = if (modifiedConfig.configsYaml)
-                            Yaml.decodeFromString(SuperiorSkyblock2Config.serializer(), readText())
-                        else
-                            gson.fromJson(readText(), SuperiorSkyblock2Config::class.java)
-                    }
-                    "&aLoaded config &b$SuperiorSkyblock2Name".send(this)
-
-                    val data = gson.fromJson(it, Array<SuperiorSkyblock2Player>::class.java)?.toMutableList() ?: mutableListOf()
-                    superiorPlayersData.clear()
-                    data.forEach {
-                        superiorPlayersData[it.uuid] = it
-                    }
-
-                    "&aLoaded database &b${SuperiorSkyblock2Name}".send(this)
-                    "&aHooked to &b$SuperiorSkyblock2Name".send(this)
-                } ?: "&cFailed to load config &b$SuperiorSkyblock2Name".send(sender)
-            }
         return r
     }
 
@@ -134,7 +95,7 @@ object Module : Plugin() {
      * load messages config
      */
     private suspend fun org.bukkit.plugin.Plugin.loadMessages(sender: CommandSender) {
-        val messagesFile = if (modifiedConfig.configsYaml) messagesYaml else messages()
+        val messagesFile = if (modifiedConfig.configsYaml) CONFIG_MESSAGES_LOCATION else messages()
         File(dataFolder, messagesFile).apply {
             sender.safeRun(false) {
                 if (!exists() || !parentFile.exists())
@@ -162,7 +123,7 @@ object Module : Plugin() {
      * load Jetpacks config
      */
     private suspend fun org.bukkit.plugin.Plugin.loadJetpacks(sender: CommandSender) {
-        val jpFile = if (modifiedConfig.configsYaml) jetpacksYaml else jetpacks()
+        val jpFile = if (modifiedConfig.configsYaml) CONFIG_JETPACKS_LOCATION else jetpacks()
         File(dataFolder, jpFile).apply file@{
             sender.safeRun(false) {
                 if (!exists() || !parentFile.exists())
@@ -172,38 +133,57 @@ object Module : Plugin() {
 
                 if (modifiedConfig.configsYaml) {
                     YamlConfiguration.loadConfiguration(this@file).let { yml ->
-                        yml.getConfigurationSection(stringEmpty)?.getKeys(false)?.forEach { jpid ->
-                            val jppath = "$jpid."
+                        yml.getConfigurationSection(STRING_EMPTY)?.getKeys(false)?.forEach { jpid ->
                             val jp = Jetpack(id = jpid)
-                            yml.getConfigurationSection(jpid)?.getKeys(false)?.forEach { key ->
-                                jp::class.memberProperties.forEach field@{
-                                    if (it.name != key || it !is KMutableProperty<*>) return@field
-                                    when (it.returnType.classifier) {
-                                        List::class -> {
-                                            it.setter.call(jp, yml.getStringList("$jppath.$key"))
-                                        }
-                                        Boolean::class -> {
-                                            it.setter.call(jp, yml.getBoolean("$jppath.$key", false))
-                                        }
-                                        Int::class -> {
-                                            it.setter.call(jp, yml.getInt("$jppath.$key", 1))
-                                        }
-                                        Long::class -> {
-                                            it.setter.call(jp, yml.getLong("$jppath.$key", 1))
-                                        }
-                                        else -> {
-                                            yml.getString("$jppath.$key")?.apply {
-                                                it.setter.call(jp,
-                                                    (if (it.name == "permission")
-                                                        lowercase()
-                                                    else
-                                                        this).replace("#id", jpid)
-                                                )
-                                            }
-                                        }
+
+                            yml.getConfigurationSection(jpid)?.apply {
+                                jp.apply {
+                                    getString("displayName")?.let {
+                                        jp.displayName = it
                                     }
+                                    getStringList("lore").let {
+                                        lore = it
+                                    }
+                                    getString("permission")?.let {
+                                        permission = it.replace("#id", jpid)
+                                    }
+                                    canBypassFuel = getBoolean("canBypassFuel")
+                                    canBypassSprintFuel = getBoolean("canBypassSprintFuel")
+                                    getString("jetpackItem")?.let {
+                                        jetpackItem = it
+                                    }
+                                    unbreakable = getBoolean("unbreakable")
+                                    getString("onEmptyFuel")?.let {
+                                        onEmptyFuel = it
+                                    }
+                                    getString("onDeath")?.let {
+                                        onDeath = it
+                                    }
+                                    onlyAllowInsideOwnGriefPreventionClaim =
+                                        getBoolean("onlyAllowInsideOwnGriefPreventionClaim")
+                                    onlyAllowInsideAllGriefPreventionClaim =
+                                        getBoolean("onlyAllowInsideAllGriefPreventionClaim")
+                                    customModelData = getInt("customModelData", customModelData)
+                                    getString("fuel")?.let {
+                                        fuel = it
+                                    }
+                                    fuelCost = getInt("fuelCost", fuelCost)
+                                    fuelCostFlySprint = getInt("fuelCostFlySprint", fuelCostFlySprint)
+                                    burnRate = getInt("burnRate", burnRate)
+                                    getString("speed")?.let {
+                                        speed = it
+                                    }
+                                    getString("particleEffect")?.let {
+                                        particleEffect = it
+                                    }
+                                    particleAmount = getInt("particleAmount", particleAmount)
+                                    particleDelay = getLong("particleDelay", particleDelay)
+                                    flags = getStringList("flags")
+                                    enchantments = getStringList("enchantments")
+                                    blockedWorlds = getStringList("blockedWorlds")
                                 }
                             }
+
                             jetpacks[jp.id] = jp.initJetpackSealed()
                             "&aLoaded Jetpack: &6&b${jp.id}".send(this)
                         }
@@ -241,7 +221,7 @@ object Module : Plugin() {
      * load Custom Fuels config
      */
     private suspend fun org.bukkit.plugin.Plugin.loadCustomFuels(sender: CommandSender) {
-        val customFuelFile = if (modifiedConfig.configsYaml) customFuelsYaml else customFuels()
+        val customFuelFile = if (modifiedConfig.configsYaml) CONFIG_CUSTOM_FUELS_LOCATION else customFuels()
         File(dataFolder, customFuelFile).apply file@{
             sender.safeRun(false) {
                 if (!exists() || !parentFile.exists())
@@ -251,32 +231,28 @@ object Module : Plugin() {
 
                 if (modifiedConfig.configsYaml) {
                     YamlConfiguration.loadConfiguration(this@file).let { yml ->
-                        yml.getConfigurationSection(stringEmpty)?.getKeys(false)?.forEach { cfid ->
-                            val cfpath = "$cfid."
+                        yml.getConfigurationSection(STRING_EMPTY)?.getKeys(false)?.forEach { cfid ->
                             val cf = CustomFuel(id = cfid)
-                            yml.getConfigurationSection(cfid)?.getKeys(false)?.forEach { key ->
-                                cf::class.memberProperties.forEach field@{
-                                    if (it.name != key || it !is KMutableProperty<*>) return@field
-                                    when (it.returnType.classifier) {
-                                        List::class -> {
-                                            it.setter.call(cf, yml.getStringList("$cfpath.$key"))
-                                        }
-                                        Boolean::class -> {
-                                            it.setter.call(cf, yml.getBoolean("$cfpath.$key", false))
-                                        }
-                                        else -> {
-                                            yml.getString("$cfpath.$key")?.apply {
-                                                it.setter.call(cf,
-                                                    (if (it.name == "permission")
-                                                        lowercase()
-                                                    else
-                                                        this).replace("#id", cfid)
-                                                )
-                                            }
-                                        }
+
+                            yml.getConfigurationSection(cfid)?.apply {
+                                cf.apply {
+                                    getString("customDisplay")?.let {
+                                        customDisplay = it
                                     }
+                                    getString("displayName")?.let {
+                                        displayName = it
+                                    }
+                                    lore = getStringList("lore")
+                                    getString("item")?.let {
+                                        item = it
+                                    }
+                                    getString("permission")?.let {
+                                        permission = it.replace("#id", cfid)
+                                    }
+                                    glowing = getBoolean("glowing")
                                 }
                             }
+
                             customFuel[cf.id] = cf
                             "&aLoaded CustomFuel: &6${cf.id}".send(this)
                         } ?: throw InvalidConfigurationException()
