@@ -9,7 +9,7 @@ plugins {
 }
 
 group 'me.phantomx.fjetpackreloaded'
-version '1.5-pre2'
+version '1.5'
 
 java {
     targetCompatibility = "1.8"
